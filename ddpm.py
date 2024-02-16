@@ -56,7 +56,6 @@ class DDPM(nn.Module):
 
         self.betas = config.beta 
         self.n_T = config.n_T
-        self.drop_prob = config.drop_prob
         self.n_classes = config.n_classes
 
         self.nn_model.to(self.device)
