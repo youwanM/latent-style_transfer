@@ -134,6 +134,7 @@ class DDPM(nn.Module):
         # We should predict the "error term" from this x_t. Loss is what we return.
 
         cemb = self.classembed(x_img.float().to(self.device))
+        cemb = cemb.unsqueeze(1)
 
         t = _ts / self.n_T
 
