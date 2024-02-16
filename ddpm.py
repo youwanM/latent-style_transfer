@@ -111,7 +111,7 @@ class DDPM(nn.Module):
         ae.load_state_dict(
             torch.load(
                 config.ae_param, 
-                map_location=ae.device
+                map_location=self.device
                 )
             )
 
