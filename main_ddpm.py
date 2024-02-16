@@ -43,8 +43,8 @@ def train(config):
     for ep in range(config.n_epoch):
 
         print(f'Epoch {ep}')
-        if device != 'cpu':
-            if device.type == 'cuda':
+        if ddpm.device != 'cpu':
+            if ddpm.device.type == 'cuda':
                 torch.cuda.empty_cache()
 
         ddpm.train()
