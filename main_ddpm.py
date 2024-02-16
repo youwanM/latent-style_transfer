@@ -174,10 +174,9 @@ if __name__ == "__main__":
     parser.add_argument('--beta', type=tuple, default=(1e-4, 0.02), help='number of classes')
     parser.add_argument('--n_T', type=int, default=500, help='number T')
     parser.add_argument('--n_C', type=int, default=10, help='number C')
-    parser.add_argument('--ae_iter', type=int, default=10, help='epoch of model to test')
-    parser.add_argument('--model_param', type=str, default='../feature_extractor/data/derived/model_b-64_lr-1e-04_epochs_100.pt', 
+    parser.add_argument('--model_param', type=str, default='./feature_extractor/data/derived/model_b-64_lr-1e-04_epochs_100.pt', 
         help='epoch of classifier embedding')
-    parser.add_argument('--ae_param', type=str, default='../autoencoder/models/model_b-16_lr-1e-04_epochs_100.pt', 
+    parser.add_argument('--ae_param', type=str, default='./vae_models/model_0.pth', 
         help='epoch of autoencoder')
 
     config = parser.parse_args()
