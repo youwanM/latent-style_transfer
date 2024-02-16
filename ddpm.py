@@ -7,9 +7,8 @@ from torchvision import models, transforms
 import numpy as np
 from models.unet import UNetModel
 import importlib
-import sys 
-sys.path.insert(0, './feature_extractor')
-
+from feature_extractor import model as md 
+from autoencoder.autoencoder import Autoencoder, Encoder, Decoder
 
 def ddpm_schedules(beta1, beta2, T):
     """
@@ -69,10 +68,6 @@ class DDPM(nn.Module):
 
         self.loss_mse = nn.MSELoss()
 
-        sys.path.insert(0, './feature_extractor')
-        package = 'model'
-        md = importlib.import_module(package)
-
         classifier = md.Classifier3D(
             n_class = config.n_classes
             )
@@ -97,11 +92,39 @@ class DDPM(nn.Module):
 
         self.classembed = regressor.eval().to(self.device) 
 
-    def forward(self, x):
+        encoder = Encoder(z_channels=4,
+                          in_channels=1,
+                          channels=128,
+                          channel_multipliers=[1, 2, 4, 4],
+                          n_resnet_blocks=2)
+
+        decoder = Decoder(out_channels=1,
+                          z_channels=4,
+                          channels=128,
+                          channel_multipliers=[1, 2, 4, 4],
+                          n_resnet_blocks=2)
+
+        ae = Autoencoder(emb_channels=4,
+                          encoder=encoder,
+                          decoder=decoder,
+                          z_channels=4)
+
+        ae.load_state_dict(
+            torch.load(
+                config.ae_param, 
+                map_location=ae.device
+                )
+            )
+
+        self.vae = ae 
+
+    def forward(self, x_img):
         """
         this method is used in training, so samples t and noise randomly
         """
         # for sampling noise and real 
+        x = self.vae.encode(x_img).sample()
+
         _ts = torch.randint(1, self.n_T+1, (x.shape[0],)).to(self.device)  # t ~ Uniform(0, n_T)
         noise = torch.randn_like(x)  # eps ~ N(0, 1)
 
@@ -116,9 +139,10 @@ class DDPM(nn.Module):
         # return MSE between added noise, and our predicted noise
         return self.loss_mse(noise, self.nn_model(x_t, _ts / self.n_T, cemb))
 
-    def transfer(self, source, target, guide_w = 1.0):
+    def transfer(self, source, target):
 
-        x_i = source.to(self.device)  # 
+        x_i = self.vae.encode(source.to(self.vae.device)).sample()
+
         noise = torch.randn_like(x_i)  # eps ~ N(0, 1)
         x_t = (
             self.sqrtab.to(self.device)[self.n_T] * x_i
@@ -147,5 +171,7 @@ class DDPM(nn.Module):
                 self.oneover_sqrta[i] * (x_t - eps * self.mab_over_sqrtmab[i])
                 + self.sqrt_beta_t[i] * z
             ) 
+
+        x_g = self.vae.decode(x_t)
         
-        return x_t
+        return x_g

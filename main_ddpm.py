@@ -40,30 +40,6 @@ def train(config):
         lr=config.lrate
         )
 
-    encoder = Encoder(z_channels=4,
-                      in_channels=1,
-                      channels=128,
-                      channel_multipliers=[1, 2, 4, 4],
-                      n_resnet_blocks=2)
-
-    decoder = Decoder(out_channels=1,
-                      z_channels=4,
-                      channels=128,
-                      channel_multipliers=[1, 2, 4, 4],
-                      n_resnet_blocks=2)
-
-    ae = Autoencoder(emb_channels=4,
-                      encoder=encoder,
-                      decoder=decoder,
-                      z_channels=4)
-
-    ae.load_state_dict(
-        torch.load(
-            config.ae_param, 
-            map_location=ae.device
-            )
-        )
-
     for ep in range(config.n_epoch):
 
         print(f'Epoch {ep}')
@@ -79,11 +55,9 @@ def train(config):
 
             optim.zero_grad()
 
-            x = x.to(ae.device)
+            x = x.to(ddpm.device)
 
-            x_z = ae.encode(x).sample()
-
-            loss = ddpm(x_z.float())
+            loss = ddpm(x.float())
             loss.backward()
 
             if loss_ema is None:
@@ -99,6 +73,7 @@ def train(config):
             torch.save(ddpm.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
 
 def transfer(config):
+    # Load models
     ddpm = DDPM(config)
 
     ddpm.load_state_dict(
@@ -127,63 +102,58 @@ def transfer(config):
         ddpm.eval()
 
         with torch.no_grad():
-            for w in config.ws_test:
-                for i in range(config.n_classes):
+            for i in range(config.n_classes):
 
-                    class_idx = [cl for cl in range(len(dataset.get_original_labels())) if dataset.get_original_labels()[cl]==dataset.label_list[i]]
+                class_idx = [cl for cl in range(len(dataset.get_original_labels())) if dataset.get_original_labels()[cl]==dataset.label_list[i]]
 
-                    i_t_list = random.sample(class_idx, config.n_C)
+                i_t_list = random.sample(class_idx, config.n_C)
 
-                    x_t_list = []
+                x_t_list = []
 
-                    for i_t in i_t_list:
+                for i_t in i_t_list:
 
-                        x_t, c_t = dataset[i_t]
+                    x_t, c_t = dataset[i_t]
 
-                        x_t_list.append(x_t)
+                    x_t_list.append(x_t)
 
-                    # x_gen = ddpm.transfer(
-                    # x, x_t.unsqueeze(1).float(), config.ws_test
-                    # )
+                x_gen = ddpm.transfer(
+                x, x_t_list
+                )
 
-                    x_gen = ddpm.transfer(
-                    x, x_t_list, w
+                affine = np.array([[   4.,    0.,    0.,  -98.],
+                                   [   0.,    4.,    0., -134.],
+                                   [   0.,    0.,    4.,  -72.],
+                                   [   0.,    0.,    0.,    1.]])
+
+                img_xgen = nib.Nifti1Image(
+                    np.array(
+                        x_gen.detach().cpu()
+                        )[0,0,:,:,:], 
+                    affine
                     )
 
-                    affine = np.array([[   4.,    0.,    0.,  -98.],
-                                       [   0.,    4.,    0., -134.],
-                                       [   0.,    0.,    4.,  -72.],
-                                       [   0.,    0.,    0.,    1.]])
+                x_r, c_r = dataset[n//config.n_classes*config.n_classes+i]
 
-                    img_xgen = nib.Nifti1Image(
-                        np.array(
-                            x_gen.detach().cpu()
-                            )[0,0,:,:,:], 
-                        affine
-                        )
+                img_xreal = nib.Nifti1Image(
+                    np.array(
+                        x_r.detach().cpu()
+                        )[0,:,:,:], 
+                    affine
+                    )
 
-                    x_r, c_r = dataset[n//config.n_classes*config.n_classes+i]
+                img_xsrc = nib.Nifti1Image(
+                    np.array(
+                        x.detach().cpu()
+                        )[0,0,:,:,:], 
+                    affine
+                    )
 
-                    img_xreal = nib.Nifti1Image(
-                        np.array(
-                            x_r.detach().cpu()
-                            )[0,:,:,:], 
-                        affine
-                        )
+                c_idx = torch.argmax(c, dim=1)[0]
+                c_t_idx = torch.argmax(c_t, dim=0)
 
-                    img_xsrc = nib.Nifti1Image(
-                        np.array(
-                            x.detach().cpu()
-                            )[0,0,:,:,:], 
-                        affine
-                        )
-
-                    c_idx = torch.argmax(c, dim=1)[0]
-                    c_t_idx = torch.argmax(c_t, dim=0)
-
-                    nib.save(img_xgen, f'{config.sample_dir}/gen-image_{n}-{config.dataset}_ep{config.test_iter}_w{w}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
-                    nib.save(img_xreal, f'{config.sample_dir}/trg-image_{n}-{config.dataset}_ep{config.test_iter}_w{w}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
-                    nib.save(img_xsrc, f'{config.sample_dir}/src-image_{n}-{config.dataset}_ep{config.test_iter}_w{w}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
+                nib.save(img_xgen, f'{config.sample_dir}/gen-image_{n}-{config.dataset}_ep{config.test_iter}_w{w}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
+                nib.save(img_xreal, f'{config.sample_dir}/trg-image_{n}-{config.dataset}_ep{config.test_iter}_w{w}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
+                nib.save(img_xsrc, f'{config.sample_dir}/src-image_{n}-{config.dataset}_ep{config.test_iter}_w{w}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

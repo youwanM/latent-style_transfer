@@ -112,6 +112,14 @@ class VAETrainer(nn.Module):
                 overall_loss += loss
 
             print("\tEpoch", epoch + 1, "\tAverage Loss: ", overall_loss/(idx*self.batch_size))
+            if device != 'cpu':
+                if device.type == 'cuda':
+                    torch.cuda.empty_cache()
+
+            if epoch % 10 or epoch==epochs-1:
+                torch.save(self.model.state_dict(), 
+                    config.model_save_dir + 
+                    f"/model_{ep}.pth")
 
         return overall_loss
 
