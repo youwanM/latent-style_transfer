@@ -134,9 +134,15 @@ class DDPM(nn.Module):
         # We should predict the "error term" from this x_t. Loss is what we return.
 
         cemb = self.classembed(x_img.float().to(self.device))
+
+        t = _ts / self.n_T
+
+        print(cemb.shape)
+        print(x_t.shape)
+        print(t.shape)
         
         # return MSE between added noise, and our predicted noise
-        return self.loss_mse(noise, self.nn_model(x_t, _ts / self.n_T, cemb))
+        return self.loss_mse(noise, self.nn_model(x_t, t, cemb))
 
     def transfer(self, source, target):
 
