@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=train-vae # nom du job
 #SBATCH --ntasks=1                   # number of MP tasks
-#SBATCH --partition=gpu_p2
+#SBATCH --partition=v100-32g
 #SBATCH --ntasks-per-node=1          # number of MPI tasks per node
 #SBATCH --gres=gpu:1                 # number of GPUs per node
-#SBATCH --cpus-per-task=16          # number of cores per tasks
+#SBATCH --cpus-per-task=8          # number of cores per tasks
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --distribution=block:block   # we pin the tasks on contiguous cores
 #SBATCH --time=24:00:00              # maximum execution time (HH:MM:SS)
