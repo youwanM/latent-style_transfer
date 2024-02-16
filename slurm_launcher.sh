@@ -15,4 +15,4 @@ source /gpfswork/rech/gft/umh25bv/miniconda3/bin/activate /gpfswork/rech/gft/umh
 /gpfswork/rech/gft/umh25bv/miniconda3/envs/workEnv/bin/python3 -u \
 /gpfswork/rech/gft/umh25bv/latent-style_transfer/main_vae.py \
 --data_dir data --dataset dataset_rh_4classes-jeanzay \
---model_save_dir vae_models --batch_size 16 --epochs 200 --lr 1e-4
+--model_save_dir vae_models --batch_size 4 --epochs 200 --lr 1e-4

@@ -21,6 +21,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader
+import nibabel as nib
+import numpy as np
 
 class VAETrainer(nn.Module):
     """
@@ -121,7 +123,26 @@ class VAETrainer(nn.Module):
                     config.model_save_dir + 
                     f"/model_{ep}.pth")
 
+                self.sample(x, epoch)
+
         return overall_loss
+
+    def sample(self, x, epoch):
+        x_gen = self.model(x.float().to(self.device))
+
+        affine = np.array([[   4.,    0.,    0.,  -98.],
+                           [   0.,    4.,    0., -134.],
+                           [   0.,    0.,    4.,  -72.],
+                           [   0.,    0.,    0.,    1.]])
+
+        img_xgen = nib.Nifti1Image(
+            np.array(
+                x_gen.detach().cpu()
+                )[0,0,:,:,:], 
+            affine
+            )
+
+        nib.save(img_xgen, f'{config.model_save_dir}/sample_epoch-{epoch}.nii.gz')
 
 class Autoencoder(nn.Module):
     """
