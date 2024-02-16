@@ -46,7 +46,7 @@ class DDPM(nn.Module):
 
         self.nn_model = UNetModel(in_channels=4,
                out_channels=4,
-               channels=160,
+               channels=320,
                attention_levels=[0, 1, 2],
                n_res_blocks=2,
                channel_multipliers=[1, 2, 4, 4],
