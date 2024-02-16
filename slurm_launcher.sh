@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=train-vae # nom du job
 #SBATCH --ntasks=1                   # number of MP tasks
+#SBATCH --partition=gpu_p2
 #SBATCH --ntasks-per-node=1          # number of MPI tasks per node
 #SBATCH --gres=gpu:1                 # number of GPUs per node
 #SBATCH --cpus-per-task=16          # number of cores per tasks
