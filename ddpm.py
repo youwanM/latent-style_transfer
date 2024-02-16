@@ -115,7 +115,7 @@ class DDPM(nn.Module):
                 )
             )
 
-        self.vae = ae 
+        self.vae = ae.to(self.device) 
 
     def forward(self, x_img):
         """
