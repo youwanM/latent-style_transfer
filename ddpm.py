@@ -138,10 +138,6 @@ class DDPM(nn.Module):
 
         t = _ts / self.n_T
 
-        print(cemb.shape)
-        print(x_t.shape)
-        print(t.shape)
-        
         # return MSE between added noise, and our predicted noise
         return self.loss_mse(noise, self.nn_model(x_t, t, cemb))
 
