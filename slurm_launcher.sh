@@ -4,7 +4,7 @@
 #SBATCH --partition=gpu_p13
 #SBATCH --ntasks-per-node=1          # number of MPI tasks per node
 #SBATCH --gres=gpu:1                 # number of GPUs per node
-#SBATCH --cpus-per-task=16         # number of cores per tasks
+#SBATCH --cpus-per-task=32         # number of cores per tasks
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --distribution=block:block   # we pin the tasks on contiguous cores
 #SBATCH --time=40:00:00              # maximum execution time (HH:MM:SS)
