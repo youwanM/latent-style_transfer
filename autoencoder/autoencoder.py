@@ -118,7 +118,7 @@ class VAETrainer(nn.Module):
                 if self.device.type == 'cuda':
                     torch.cuda.empty_cache()
 
-            if epoch % 10 or epoch==epochs-1:
+            if epoch % 10 or epoch==self.epochs-1:
                 torch.save(self.model.state_dict(), 
                     config.model_save_dir + 
                     f"/model_{ep}.pth")
