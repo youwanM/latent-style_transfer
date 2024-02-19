@@ -88,7 +88,7 @@ class VAETrainer(nn.Module):
 
         self.optimizer.zero_grad()
 
-        x_hat, posterior = self.model(x)
+        x_hat, mean, log_var = self.model(x)
         loss = self.loss_function(x, x_hat, posterior.mean, posterior.log_var)
                 
         loss.backward()
@@ -213,7 +213,7 @@ class Autoencoder(nn.Module):
 
         dec = self.decode(z)
 
-        return dec, posterior
+        return dec, posterior.mean, posterior.log_var
 
 
 class Encoder(nn.Module):
