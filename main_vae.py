@@ -19,14 +19,14 @@ def train(config):
     encoder = Encoder(z_channels=4,
                       in_channels=1,
                       channels=128,
-                      channel_multipliers=[1, 2, 4, 4],
-                      n_resnet_blocks=2)
+                      channel_multipliers=[1, 2, 4],
+                      n_resnet_blocks=1)
 
     decoder = Decoder(out_channels=1,
                       z_channels=4,
                       channels=128,
-                      channel_multipliers=[1, 2, 4, 4],
-                      n_resnet_blocks=2)
+                      channel_multipliers=[1, 2, 4],
+                      n_resnet_blocks=1)
 
     ae = Autoencoder(emb_channels=4,
                       encoder=encoder,
