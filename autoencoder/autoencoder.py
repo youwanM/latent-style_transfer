@@ -114,8 +114,8 @@ class VAETrainer(nn.Module):
                 overall_loss += loss
 
             print("\tEpoch", epoch + 1, "\tAverage Loss: ", overall_loss/(idx*self.batch_size))
-            if device != 'cpu':
-                if device.type == 'cuda':
+            if self.device != 'cpu':
+                if self.device.type == 'cuda':
                     torch.cuda.empty_cache()
 
             if epoch % 10 or epoch==epochs-1:
