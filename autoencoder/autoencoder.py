@@ -45,6 +45,8 @@ class VAETrainer(nn.Module):
         self.model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
+        self.model_save_dir = config.model_save_dir
+
     def loss_function(self, x, x_hat, mean, log_var):
         '''
         Get total loss. 
@@ -120,7 +122,7 @@ class VAETrainer(nn.Module):
 
             if epoch % 10 or epoch==self.epochs-1:
                 torch.save(self.model.state_dict(), 
-                    config.model_save_dir + 
+                    self.model_save_dir + 
                     f"/model_{ep}.pth")
 
                 self.sample(x, epoch)
