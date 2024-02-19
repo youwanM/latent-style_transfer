@@ -89,7 +89,7 @@ class VAETrainer(nn.Module):
         self.optimizer.zero_grad()
 
         x_hat, mean, log_var = self.model(x)
-        loss = self.loss_function(x, x_hat, posterior.mean, posterior.log_var)
+        loss = self.loss_function(x, x_hat, mean, log_var)
                 
         loss.backward()
         self.optimizer.step()
