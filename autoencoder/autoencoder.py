@@ -41,7 +41,13 @@ class VAETrainer(nn.Module):
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
         self.model = ae
+
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            self.model = nn.DataParallel(self.model)
+
         self.model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
@@ -121,10 +127,14 @@ class VAETrainer(nn.Module):
                     torch.cuda.empty_cache()
 
             if epoch % 10 or epoch==self.epochs-1:
-                torch.save(self.model.state_dict(), 
-                    self.model_save_dir + 
-                    f"/model_{ep}.pth")
-
+                if torch.cuda.device_count() > 1:
+                    torch.save(self.model.module.state_dict(), 
+                        self.model_save_dir + 
+                        f"/model_{ep}.pth")
+                else:
+                    torch.save(self.model.state_dict(), 
+                        self.model_save_dir + 
+                        f"/model_{ep}.pth")
                 self.sample(x, epoch)
 
         return overall_loss
