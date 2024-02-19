@@ -4,11 +4,11 @@
 #SBATCH --partition=gpu_p13
 #SBATCH --ntasks-per-node=1          # number of MPI tasks per node
 #SBATCH --gres=gpu:1                 # number of GPUs per node
-#SBATCH --cpus-per-task=32         # number of cores per tasks
+#SBATCH --cpus-per-task=24         # number of cores per tasks
 #SBATCH -C v100-32g 
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --distribution=block:block   # we pin the tasks on contiguous cores
-#SBATCH --time=40:00:00              # maximum execution time (HH:MM:SS)
+#SBATCH --time=32:00:00              # maximum execution time (HH:MM:SS)
 #SBATCH --output=vae-train%j.out # output file name
 #SBATCH --error=vae-train%j.err  # error file name
 #SBATCH --qos=qos_gpu-t4
