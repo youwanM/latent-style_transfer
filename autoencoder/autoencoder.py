@@ -154,7 +154,7 @@ class VAETrainer(nn.Module):
             affine
             )
 
-        nib.save(img_xgen, f'{config.model_save_dir}/sample_epoch-{epoch}.nii.gz')
+        nib.save(img_xgen, f'{self.model_save_dir}/sample_epoch-{epoch}.nii.gz')
 
 class Autoencoder(nn.Module):
     """
