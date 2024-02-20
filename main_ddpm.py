@@ -74,7 +74,7 @@ def train(config):
 
         if ep %10 == 0 or ep == config.n_epoch:
             if torch.cuda.device_count() > 1:
-                torch.save(ddpm.modules.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
+                torch.save(ddpm.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
             else:
                 torch.save(ddpm.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
 
