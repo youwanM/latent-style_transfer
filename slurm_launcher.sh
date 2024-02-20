@@ -22,5 +22,5 @@ source /gpfswork/rech/gft/umh25bv/miniconda3/bin/activate /gpfswork/rech/gft/umh
 --mode train --dataset dataset_rh_4classes-jeanzay \
 --labels pipelines --model_save_dir ddpm_models \
 --batch_size 4 --lrate 1e-4 --n_epoch 200 --n_classes 4 \
---sample_dir ddpm_samples --ae_param /gpfswork/rech/gft/umh25bv/latent-style_transfer/vae_models/model_9.pth \
+--sample_dir ddpm_samples --ae_param /gpfswork/rech/gft/umh25bv/latent-style_transfer/vae_models/model_17.pth \
 --model_param /gpfswork/rech/gft/umh25bv/latent-style_transfer/feature_extractor/models/model_b-64_lr-1e-04_epochs_150.pth 
