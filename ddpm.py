@@ -58,6 +58,10 @@ class DDPM(nn.Module):
         self.n_T = config.n_T
         self.n_classes = config.n_classes
 
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            self.nn_model = nn.DataParallel(self.nn_model)
+
         self.nn_model.to(self.device)
 
         # register_buffer allows accessing dictionary produced by ddpm_schedules
