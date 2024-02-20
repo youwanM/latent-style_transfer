@@ -1,15 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name=train-vae # nom du job
 #SBATCH --ntasks=1                   # number of MP tasks
-#SBATCH --partition=gpu_p2
+#SBATCH --partition=gpu_p13
 #SBATCH --ntasks=1          # number of MPI tasks per node
 #SBATCH --gres=gpu:4                 # number of GPUs per node
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --distribution=block:block   # we pin the tasks on contiguous cores
-#SBATCH --time=2:00:00              # maximum execution time (HH:MM:SS)
+#SBATCH --time=11:00:00              # maximum execution time (HH:MM:SS)
 #SBATCH --output=ddpm-train%j.out # output file name
 #SBATCH --error=ddpm-train%j.err  # error file name
-#SBATCH --qos=qos_gpu-dev
 
 source /gpfswork/rech/gft/umh25bv/miniconda3/bin/activate /gpfswork/rech/gft/umh25bv/miniconda3/envs/workEnv
 
