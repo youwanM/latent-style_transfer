@@ -130,11 +130,11 @@ class VAETrainer(nn.Module):
                 if torch.cuda.device_count() > 1:
                     torch.save(self.model.module.state_dict(), 
                         self.model_save_dir + 
-                        f"/model_{ep}.pth")
+                        f"/model_{epoch}.pth")
                 else:
                     torch.save(self.model.state_dict(), 
                         self.model_save_dir + 
-                        f"/model_{ep}.pth")
+                        f"/model_{epoch}.pth")
                 self.sample(x, epoch)
 
         return overall_loss
