@@ -3,7 +3,7 @@
 #SBATCH --ntasks=1                   # number of MP tasks
 #SBATCH --partition=gpu_p13
 #SBATCH --ntasks=1          # number of MPI tasks per node
-#SBATCH --gres=gpu:4                 # number of GPUs per node
+#SBATCH --gres=gpu:8                 # number of GPUs per node
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --distribution=block:block   # we pin the tasks on contiguous cores
 #SBATCH --time=2:00:00              # maximum execution time (HH:MM:SS)
@@ -16,7 +16,7 @@ source /gpfswork/rech/gft/umh25bv/miniconda3/bin/activate /gpfswork/rech/gft/umh
 /gpfswork/rech/gft/umh25bv/miniconda3/envs/workEnv/bin/python3 -u \
 /gpfswork/rech/gft/umh25bv/latent-style_transfer/main_vae.py \
 --data_dir data --dataset dataset_rh_4classes-jeanzay \
---model_save_dir vae_models --batch_size 8 --epochs 200 --lr 1e-4
+--model_save_dir vae_models --batch_size 16 --epochs 200 --lr 1e-4
 
 # /gpfswork/rech/gft/umh25bv/miniconda3/envs/workEnv/bin/python3 -u /gpfswork/rech/gft/umh25bv/latent-style_transfer/main_ddpm.py \
 # --mode train --dataset dataset_rh_4classes-jeanzay \
