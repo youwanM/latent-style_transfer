@@ -140,7 +140,7 @@ class VAETrainer(nn.Module):
         return overall_loss
 
     def sample(self, x, epoch):
-        x_gen = self.model(x.float().to(self.device))
+        x_gen, mean, log_var = self.model(x.float().to(self.device))
 
         affine = np.array([[   4.,    0.,    0.,  -98.],
                            [   0.,    4.,    0., -134.],
