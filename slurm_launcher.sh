@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=train-vae # nom du job
 #SBATCH --ntasks=1                   # number of MP tasks
-#SBATCH --partition=gpu_p2
+#SBATCH --partition=gpu_p13
 #SBATCH --ntasks=1          # number of MPI tasks per node
 #SBATCH --gres=gpu:4                 # number of GPUs per node
 #SBATCH --hint=nomultithread         # we get physical cores not logical
