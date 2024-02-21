@@ -6,16 +6,16 @@
 #SBATCH --gres=gpu:4                 # number of GPUs per node
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --distribution=block:block   # we pin the tasks on contiguous cores
-#SBATCH --time=11:00:00              # maximum execution time (HH:MM:SS)
-#SBATCH --output=ddpm-train%j.out # output file name
-#SBATCH --error=ddpm-train%j.err  # error file name
+#SBATCH --time=12:00:00              # maximum execution time (HH:MM:SS)
+#SBATCH --output=vae-train%j.out # output file name
+#SBATCH --error=vae-train%j.err  # error file name
 
 source /gpfswork/rech/gft/umh25bv/miniconda3/bin/activate /gpfswork/rech/gft/umh25bv/miniconda3/envs/workEnv
 
 /gpfswork/rech/gft/umh25bv/miniconda3/envs/workEnv/bin/python3 -u \
 /gpfswork/rech/gft/umh25bv/latent-style_transfer/main_vae.py \
 --data_dir data --dataset dataset_rh_4classes-jeanzay \
---model_save_dir ./autoencoder/models --batch_size 8 --epochs 200 --lr 1e-4
+--model_save_dir ./vae_models --batch_size 8 --epochs 200 --lr 1e-4
 
 # /gpfswork/rech/gft/umh25bv/miniconda3/envs/workEnv/bin/python3 -u /gpfswork/rech/gft/umh25bv/latent-style_transfer/main_ddpm.py \
 # --mode train --dataset dataset_rh_4classes-jeanzay \

@@ -38,6 +38,7 @@ class VAETrainer(nn.Module):
         self.batch_size = config.batch_size
         self.epochs = config.epochs
         self.lr = config.lr
+        self.beta = config.beta
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -73,7 +74,7 @@ class VAETrainer(nn.Module):
 
         KLD = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
 
-        return reproduction_loss + KLD
+        return reproduction_loss + self.beta * KLD
 
     def train_step(self, x):
         '''
