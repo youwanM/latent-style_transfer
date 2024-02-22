@@ -570,7 +570,7 @@ def swish(x: torch.Tensor):
 
     $$x \cdot \sigma(x)$$
     """
-    return x * torch.swish(x)
+    return x * torch.sigmoid(x)
 
 
 def normalization(channels: int):
