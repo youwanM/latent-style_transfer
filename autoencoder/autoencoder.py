@@ -298,7 +298,7 @@ class Encoder(nn.Module):
 
         # Normalize and map to embedding space
         x = self.norm_out(x)
-        x = tanh(x)
+        x = swish(x)
         x = self.conv_out(x)
 
         #
@@ -389,7 +389,7 @@ class Decoder(nn.Module):
 
         # Normalize and map to image space
         h = self.norm_out(h)
-        h = tanh(h)
+        h = swish(h)
         img = self.conv_out(h)
 
         #
@@ -552,25 +552,25 @@ class ResnetBlock(nn.Module):
 
         # First normalization and convolution layer
         h = self.norm1(h)
-        h = tanh(h)
+        h = swish(h)
         h = self.conv1(h)
 
         # Second normalization and convolution layer
         h = self.norm2(h)
-        h = tanh(h)
+        h = swish(h)
         h = self.conv2(h)
 
         # Map and add residual
         return self.nin_shortcut(x) + h
 
 
-def tanh(x: torch.Tensor):
+def swish(x: torch.Tensor):
     """
-    ### tanh activation
+    ### swish activation
 
     $$x \cdot \sigma(x)$$
     """
-    return torch.tanh(x)
+    return x * torch.swish(x)
 
 
 def normalization(channels: int):
