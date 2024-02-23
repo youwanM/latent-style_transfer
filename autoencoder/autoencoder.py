@@ -575,8 +575,8 @@ def swish(x: torch.Tensor):
 
 def normalization(channels: int):
     """
-    ### Group normalization
+    ### Batch normalization
 
     This is a helper function, with fixed number of groups and `eps`.
     """
-    return nn.GroupNorm(num_groups=32, num_channels=channels, eps=1e-6)
+    return nn.BatchNorm3D(num_channels=channels)
