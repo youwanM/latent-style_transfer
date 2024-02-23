@@ -407,7 +407,7 @@ class GaussianDistribution:
             `[batch_size, z_channels * 2, z_height, z_height]`
         """
         # Split mean and log of variance
-        self.mean, log_var = torch.chunk(parameters, 2, dim=1)
+        self.mean, self.log_var = torch.chunk(parameters, 2, dim=1)
         # Clamp the log of variances
         #self.log_var = torch.clamp(log_var, -30.0, 20.0)
         # Calculate standard deviation
