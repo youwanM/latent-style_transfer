@@ -1,6 +1,7 @@
 from utils.datasets import ClassifDataset
 from torch.backends import cudnn 
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 import os
 import argparse
@@ -74,9 +75,9 @@ def train(config):
 
         if ep %10 == 0 or ep == config.n_epoch:
             if torch.cuda.device_count() > 1:
-                torch.save(ddpm.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
+                torch.save(ddpm.module.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
             else:
-                torch.save(ddpm.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
+                torch.save(ddpm.module.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
 
 def transfer(config):
     # Load models
@@ -84,8 +85,8 @@ def transfer(config):
 
     ddpm.load_state_dict(
         torch.load(
-            config.model_save_dir + f"/model_{config.test_iter}.pth", 
-            map_location=ddpm.device
+            config.model_save_dir + f"/model_{config.test_iter}_new.pth", 
+            map_location=torch.device('cpu')
             )
         )
 
@@ -157,9 +158,9 @@ def transfer(config):
                 c_idx = torch.argmax(c, dim=1)[0]
                 c_t_idx = torch.argmax(c_t, dim=0)
 
-                nib.save(img_xgen, f'{config.sample_dir}/gen-image_{n}-{config.dataset}_ep{config.test_iter}_w{w}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
-                nib.save(img_xreal, f'{config.sample_dir}/trg-image_{n}-{config.dataset}_ep{config.test_iter}_w{w}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
-                nib.save(img_xsrc, f'{config.sample_dir}/src-image_{n}-{config.dataset}_ep{config.test_iter}_w{w}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
+                nib.save(img_xgen, f'{config.sample_dir}/gen-image_{n}-{config.dataset}_ep{config.test_iter}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
+                nib.save(img_xreal, f'{config.sample_dir}/trg-image_{n}-{config.dataset}_ep{config.test_iter}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
+                nib.save(img_xsrc, f'{config.sample_dir}/src-image_{n}-{config.dataset}_ep{config.test_iter}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -180,10 +181,11 @@ if __name__ == "__main__":
     parser.add_argument('--beta', type=tuple, default=(1e-4, 0.02), help='number of classes')
     parser.add_argument('--n_T', type=int, default=500, help='number T')
     parser.add_argument('--n_C', type=int, default=10, help='number C')
-    parser.add_argument('--model_param', type=str, default='./feature_extractor/data/derived/model_b-64_lr-1e-04_epochs_100.pt', 
+    parser.add_argument('--model_param', type=str, default='./feature_extractor/models/model_b-64_lr-1e-04_epochs_150.pth', 
         help='epoch of classifier embedding')
-    parser.add_argument('--ae_param', type=str, default='./vae_models/model_0.pth', 
+    parser.add_argument('--ae_param', type=str, default='./vae_models-no_sampling/model_3.pth', 
         help='epoch of autoencoder')
+    parser.add_argument('--test_iter', type=int, default=30, help='epochs to test')
 
     config = parser.parse_args()
 

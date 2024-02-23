@@ -60,9 +60,9 @@ class DDPM(nn.Module):
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
-            self.nn_model = nn.DataParallel(self.nn_model)
+            self = nn.DataParallel(self)
 
-        self.nn_model.to(self.device)
+        self.to(self.device)
 
         # register_buffer allows accessing dictionary produced by ddpm_schedules
         # e.g. can access self.sqrtab later
@@ -126,7 +126,7 @@ class DDPM(nn.Module):
         this method is used in training, so samples t and noise randomly
         """
         # for sampling noise and real 
-        x = self.vae.encode(x_img.float().to(self.device)).sample()
+        x = self.vae.encode(x_img.float().to(self.device)).mode()
 
         _ts = torch.randint(1, self.n_T+1, (x.shape[0],)).to(self.device)  # t ~ Uniform(0, n_T)
         noise = torch.randn_like(x)  # eps ~ N(0, 1)
@@ -147,7 +147,7 @@ class DDPM(nn.Module):
 
     def transfer(self, source, target):
 
-        x_i = self.vae.encode(source.to(self.vae.device)).sample()
+        x_i = self.vae.encode(source.to(self.device).float()).mode()
 
         noise = torch.randn_like(x_i)  # eps ~ N(0, 1)
         x_t = (
@@ -161,12 +161,13 @@ class DDPM(nn.Module):
             cemb_list.append(self.classembed(x_trg.unsqueeze(1).float().to(self.device)).cpu())
 
         cemb = torch.tensor(np.mean(cemb_list,0)).to(self.device)
+        cemb = cemb.unsqueeze(1)
 
         for i in range(self.n_T, 0, -1):
 
             print(f'sampling timestep {i}',end='\r')
             t_is = torch.tensor([i / self.n_T]).to(self.device)
-            t_is = t_is.repeat(1,1,1,1,1)
+            #t_is = t_is.repeat(1,1,1,1,1)
 
             z = torch.randn(*x_t.shape).to(self.device) if i > 1 else 0
 
