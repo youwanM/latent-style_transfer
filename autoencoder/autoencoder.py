@@ -89,7 +89,7 @@ class VAETrainer(nn.Module):
 
         self.optimizer.zero_grad()
 
-        x_hat, mean, log_var = self.model(x, sample_posterior=False)
+        x_hat, mean, log_var = self.model(x, sample_posterior=True)
         loss = self.loss_function(x, x_hat, mean, log_var)
                 
         loss.backward()
@@ -176,10 +176,10 @@ class Autoencoder(nn.Module):
         self.decoder = decoder
         # Convolution to map from embedding space to
         # quantized embedding space moments (mean and log variance)
-        self.quant_conv = nn.Conv3d(2 * z_channels, 2 * emb_channels, 1)
+        self.quant_conv = nn.Conv3d(2 * z_channels, 2 * emb_channels, 1, bias=False)
         # Convolution to map from quantized embedding space back to
         # embedding space
-        self.post_quant_conv = nn.Conv3d(emb_channels, z_channels, 1)
+        self.post_quant_conv = nn.Conv3d(emb_channels, z_channels, 1, bias=False)
 
     def encode(self, img: torch.Tensor) -> 'GaussianDistribution':
         """
@@ -239,7 +239,7 @@ class Encoder(nn.Module):
         n_resolutions = len(channel_multipliers)
 
         # Initial $3 \times 3$ convolution layer that maps the image to `channels`
-        self.conv_in = nn.Conv3d(in_channels, channels, 3, stride=1, padding=1)
+        self.conv_in = nn.Conv3d(in_channels, channels, 3, stride=1, padding=1, bias=False)
 
         # Number of channels in each top level block
         channels_list = [m * channels for m in [1] + channel_multipliers]
@@ -273,7 +273,7 @@ class Encoder(nn.Module):
 
         # Map to embedding space with a $3 \times 3$ convolution
         self.norm_out = normalization(channels)
-        self.conv_out = nn.Conv3d(channels, 2 * z_channels, (2,3,2), stride=1, padding=(2,2,2))
+        self.conv_out = nn.Conv3d(channels, 2 * z_channels, (2,3,2), stride=1, padding=(2,2,2), bias=False)
 
     def forward(self, img: torch.Tensor):
         """
@@ -333,7 +333,7 @@ class Decoder(nn.Module):
         channels = channels_list[-1]
 
         # Initial $3 \times 3$ convolution layer that maps the embedding space to `channels`
-        self.conv_in = nn.Conv3d(z_channels, channels, (5,4,5), stride=1, padding=(1,1,1))
+        self.conv_in = nn.Conv3d(z_channels, channels, (5,4,5), stride=1, padding=(1,1,1), bias=False)
 
         # ResNet blocks with attention
         self.mid = nn.Module()
@@ -364,7 +364,7 @@ class Decoder(nn.Module):
 
         # Map to image space with a $3 \times 3$ convolution
         self.norm_out = normalization(channels)
-        self.conv_out = nn.Conv3d(channels, out_channels, (3,3,3), stride=1, padding=(1,1,1))
+        self.conv_out = nn.Conv3d(channels, out_channels, (3,3,3), stride=1, padding=(1,1,1), bias=False)
 
     def forward(self, z: torch.Tensor):
         """
@@ -434,11 +434,11 @@ class AttnBlock(nn.Module):
         # Group normalization
         self.norm = normalization(channels)
         # Query, key and value mappings
-        self.q = nn.Conv3d(channels, channels, 1)
-        self.k = nn.Conv3d(channels, channels, 1)
-        self.v = nn.Conv3d(channels, channels, 1)
+        self.q = nn.Conv3d(channels, channels, 1, bias=False)
+        self.k = nn.Conv3d(channels, channels, 1, bias=False)
+        self.v = nn.Conv3d(channels, channels, 1, bias=False)
         # Final $1 \times 1$ convolution layer
-        self.proj_out = nn.Conv3d(channels, channels, 1)
+        self.proj_out = nn.Conv3d(channels, channels, 1, bias=False)
         # Attention scaling factor
         self.scale = channels ** -0.5
 
@@ -487,7 +487,7 @@ class UpSample(nn.Module):
         """
         super().__init__()
         # $3 \times 3$ convolution mapping
-        self.conv = nn.Conv3d(channels, channels, 3, padding=1)
+        self.conv = nn.Conv3d(channels, channels, 3, padding=1, bias=False)
 
     def forward(self, x: torch.Tensor):
         """
@@ -509,7 +509,7 @@ class DownSample(nn.Module):
         """
         super().__init__()
         # $3 \times 3$ convolution with stride length of $2$ to down-sample by a factor of $2$
-        self.conv = nn.Conv3d(channels, channels, 3, stride=2, padding=0)
+        self.conv = nn.Conv3d(channels, channels, 3, stride=2, padding=0, bias=False)
 
     def forward(self, x: torch.Tensor):
         """
@@ -533,13 +533,13 @@ class ResnetBlock(nn.Module):
         super().__init__()
         # First normalization and convolution layer
         self.norm1 = normalization(in_channels)
-        self.conv1 = nn.Conv3d(in_channels, out_channels, 3, stride=1, padding=1)
+        self.conv1 = nn.Conv3d(in_channels, out_channels, 3, stride=1, padding=1, bias=False)
         # Second normalization and convolution layer
         self.norm2 = normalization(out_channels)
-        self.conv2 = nn.Conv3d(out_channels, out_channels, 3, stride=1, padding=1)
+        self.conv2 = nn.Conv3d(out_channels, out_channels, 3, stride=1, padding=1, bias=False)
         # `in_channels` to `out_channels` mapping layer for residual connection
         if in_channels != out_channels:
-            self.nin_shortcut = nn.Conv3d(in_channels, out_channels, 1, stride=1, padding=0)
+            self.nin_shortcut = nn.Conv3d(in_channels, out_channels, 1, stride=1, padding=0, bias=False)
         else:
             self.nin_shortcut = nn.Identity()
 
