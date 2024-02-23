@@ -75,17 +75,17 @@ def train(config):
 
         if ep %10 == 0 or ep == config.n_epoch:
             if torch.cuda.device_count() > 1:
-                torch.save(ddpm.module.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
+                torch.save(ddpm.nn_model.module.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
             else:
-                torch.save(ddpm.module.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
+                torch.save(ddpm.nn_model.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
 
 def transfer(config):
     # Load models
     ddpm = DDPM(config)
 
-    ddpm.load_state_dict(
+    ddpm.nn_model.load_state_dict(
         torch.load(
-            config.model_save_dir + f"/model_{config.test_iter}_new.pth", 
+            config.model_save_dir + f"/model_{config.test_iter}.pth", 
             map_location=torch.device('cpu')
             )
         )
