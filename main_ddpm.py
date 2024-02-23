@@ -183,7 +183,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_C', type=int, default=10, help='number C')
     parser.add_argument('--model_param', type=str, default='./feature_extractor/models/model_b-64_lr-1e-04_epochs_150.pth', 
         help='epoch of classifier embedding')
-    parser.add_argument('--ae_param', type=str, default='./vae_models-no_sampling/model_3.pth', 
+    parser.add_argument('--ae_param', type=str, default='./vae_models-no_sampling/model_9.pth', 
         help='epoch of autoencoder')
     parser.add_argument('--test_iter', type=int, default=30, help='epochs to test')
 
