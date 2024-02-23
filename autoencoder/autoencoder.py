@@ -409,7 +409,7 @@ class GaussianDistribution:
         # Split mean and log of variance
         self.mean, log_var = torch.chunk(parameters, 2, dim=1)
         # Clamp the log of variances
-        self.log_var = torch.clamp(log_var, -30.0, 20.0)
+        #self.log_var = torch.clamp(log_var, -30.0, 20.0)
         # Calculate standard deviation
         self.std = torch.exp(0.5 * self.log_var)
 
