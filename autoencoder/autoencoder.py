@@ -579,4 +579,4 @@ def normalization(channels: int):
 
     This is a helper function, with fixed number of groups and `eps`.
     """
-    return nn.BatchNorm3D(num_channels=channels)
+    return nn.BatchNorm3d(num_channels=channels)
