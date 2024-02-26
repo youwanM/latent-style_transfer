@@ -24,6 +24,67 @@ from torch.utils.data import DataLoader
 import nibabel as nib
 import numpy as np
 
+class VAETester(nn.Module):
+    """
+    Tester for VAE.
+    """
+    def __init__(
+        self, 
+        ae, 
+        config:dict):
+
+        super().__init__()
+
+        self.test_iter = config.test_iter
+        self.model_save_dir = config.model_save_dir
+        self.sample_save_dir = config.sample_save_dir
+
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        self.model = ae
+        self.model.load_state_dict(
+        torch.load(
+            f'./{self.model_save_dir}/model_{self.test_iter}.pth', 
+            map_location = self.device
+            )
+        )
+
+    def test(self, dataset):
+        dataloader = DataLoader(
+            dataset, 
+            batch_size=1, 
+            shuffle=False
+            )
+
+        self.model.eval()
+
+        for idx, img in enumerate(dataloader):
+
+            x, _, _ = ae(img.float(), sample_posterior=False)
+
+            affine = np.array([[   4.,    0.,    0.,  -98.],
+                               [   0.,    4.,    0., -134.],
+                               [   0.,    0.,    4.,  -72.],
+                               [   0.,    0.,    0.,    1.]])
+
+            img_nii = nib.Nifti1Image(
+                np.array(
+                    x.detach().cpu()
+                    )[0,0,:,:,:], 
+                affine
+                )
+
+            src_nii = nib.Nifti1Image(
+                np.array(
+                    img.detach().cpu()
+                    )[0,0,:,:,:], 
+                affine
+                )
+
+            nib.save(img_nii, f'{self.sample_save_dir}/generated-img-{idx}.nii.gz')
+            nib.save(src_nii, f'{self.sample_save_dir}/source-img-{idx}.nii.gz')
+
+
 class VAETrainer(nn.Module):
     """
     Trainer for VAE.
