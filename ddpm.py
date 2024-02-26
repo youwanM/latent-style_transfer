@@ -119,7 +119,7 @@ class DDPM(nn.Module):
                 )
             )
 
-        self.vae = ae.to(self.device) 
+        self.vae = ae.eval().to(self.device)
 
     def forward(self, x_img):
         """
@@ -147,7 +147,7 @@ class DDPM(nn.Module):
 
     def transfer(self, source, target):
 
-        x_i = self.vae.encode(source.to(self.device).float()).mode()
+        x_i = self.vae.encode(source.to(self.device).float()).sample()
 
         noise = torch.randn_like(x_i)  # eps ~ N(0, 1)
         x_t = (
