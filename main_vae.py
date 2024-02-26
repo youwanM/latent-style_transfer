@@ -69,7 +69,7 @@ def test(config):
                       z_channels=4)
 
     # Data loader. 
-    dataset_file = f'{config.data_dir}/train-{config.dataset}.csv'
+    dataset_file = f'{config.data_dir}/test-{config.dataset}.csv'
     data_flist = pd.read_csv(dataset_file)['filepaths']
 
     dataset = ImageDataset(
