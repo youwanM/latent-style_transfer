@@ -60,7 +60,7 @@ class VAETester(nn.Module):
 
         for idx, img in enumerate(dataloader):
 
-            x, _, _ = ae(img.float(), sample_posterior=False)
+            x, _, _ = self.model(img.float(), sample_posterior=False)
 
             affine = np.array([[   4.,    0.,    0.,  -98.],
                                [   0.,    4.,    0., -134.],
