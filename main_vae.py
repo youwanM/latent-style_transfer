@@ -48,8 +48,8 @@ def train(config):
 
 
 def test(config):
-    if not os.path.isdir(config.model_save_dir):
-        os.mkdir(config.model_save_dir)
+    if not os.path.isdir(config.sample_save_dir):
+        os.mkdir(config.sample_save_dir)
 
     encoder = Encoder(z_channels=4,
                       in_channels=1,

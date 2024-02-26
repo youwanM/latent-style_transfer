@@ -49,6 +49,8 @@ class VAETester(nn.Module):
             )
         )
 
+        print('Loaded model from epoch:', self.test_iter)
+
     def test(self, dataset):
         dataloader = DataLoader(
             dataset, 
@@ -57,6 +59,8 @@ class VAETester(nn.Module):
             )
 
         self.model.eval()
+
+        print('--- Start test ---')
 
         for idx, img in enumerate(dataloader):
 
