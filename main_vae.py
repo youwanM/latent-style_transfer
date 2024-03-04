@@ -91,7 +91,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=32, help='mini-batch size')
     parser.add_argument('--epochs', type=int, default=200, help='number of total iterations')
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
-    parser.add_argument('--beta', type=float, default=1e-6, help='weight factor for KLD')
+    parser.add_argument('--beta', type=float, default=1e-3, help='weight factor for KLD')
     parser.add_argument('--test_iter', type=int, default=83, help='iteration to test')
     parser.add_argument('--mode', type=str, default='train', help='train or test')
 
