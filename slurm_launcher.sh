@@ -15,7 +15,7 @@ source /gpfswork/rech/gft/umh25bv/miniconda3/bin/activate /gpfswork/rech/gft/umh
 
 /gpfswork/rech/gft/umh25bv/miniconda3/envs/workEnv/bin/python3 -u \
 /gpfswork/rech/gft/umh25bv/latent-style_transfer/main_vae.py --mode train \
---data_dir data --dataset dataset_rhrh_4classes-jeanzay \
+--data_dir data --dataset dataset_rfrh_4classes-jeanzay \
 --model_save_dir ./vae_models-rfrh --batch_size 8 --epochs 200 --lr 1e-4 --beta 1e-3
 
 # /gpfswork/rech/gft/umh25bv/miniconda3/envs/workEnv/bin/python3 -u \
