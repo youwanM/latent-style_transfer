@@ -156,7 +156,7 @@ class VAETrainer(nn.Module):
 
         self.optimizer.zero_grad()
 
-        x_hat, mean, log_var = self.model(x, sample_posterior=False)
+        x_hat, mean, log_var = self.model(x, sample_posterior=True)
         loss = self.loss_function(x, x_hat, mean, log_var)
                 
         loss.backward()
