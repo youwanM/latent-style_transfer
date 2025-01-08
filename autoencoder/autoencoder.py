@@ -23,6 +23,10 @@ from torch import nn
 from torch.utils.data import DataLoader
 import nibabel as nib
 import numpy as np
+from tqdm import tqdm
+from PIL import Image
+from monai.losses import PerceptualLoss
+import wandb
 
 class VAETester(nn.Module):
     """
@@ -38,6 +42,7 @@ class VAETester(nn.Module):
         self.test_iter = config.test_iter
         self.model_save_dir = config.model_save_dir
         self.sample_save_dir = config.sample_save_dir
+        self.save_latent_vectors = config.save_latent_vectors
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -45,13 +50,42 @@ class VAETester(nn.Module):
         self.model.load_state_dict(
         torch.load(
             f'./{self.model_save_dir}/model_{self.test_iter}.pth', 
-            map_location = self.device
+            map_location = self.device,
+            weights_only=True,
             )
         )
 
         self.model.to(self.device)
 
         print('Loaded model from epoch:', self.test_iter)
+
+    def sample_test(self, x, id):
+        x_gen, mean, log_var = self.model(x.float().to(self.device))
+
+        affine = np.array([[4., 0., 0., -98.],
+                           [0., 4., 0., -134.],
+                           [0., 0., 4., -72.],
+                           [0., 0., 0., 1.]])
+
+        img_xgen = nib.Nifti1Image(
+            np.array(
+                x_gen.detach().cpu()
+            )[0, 0, :, :, :],
+            affine
+        )
+
+        img_x = nib.Nifti1Image(
+            np.array(
+                x.detach().cpu()
+            )[0, 0, :, :, :],
+            affine
+        )
+
+        if self.save_latent_vectors == True:
+            latent_vectors = {"mu": mean, "variance": log_var}
+            torch.save(latent_vectors, f'{self.sample_save_dir}/latent-{id}.pth')
+        nib.save(img_x,f'{self.sample_save_dir}/original-{id}.nii.gz')
+        nib.save(img_xgen, f'{self.sample_save_dir}/reconstructed-{id}.nii.gz')
 
     def test(self, dataset):
         dataloader = DataLoader(
@@ -64,31 +98,10 @@ class VAETester(nn.Module):
 
         print('--- Start test ---')
 
-        for idx, img in enumerate(dataloader):
+        for idx, img in enumerate(tqdm(dataloader)):
+            self.sample_test(img, idx)
 
-            x, _, _ = self.model(img.float().to(self.device), sample_posterior=True)
-
-            affine = np.array([[   4.,    0.,    0.,  -98.],
-                               [   0.,    4.,    0., -134.],
-                               [   0.,    0.,    4.,  -72.],
-                               [   0.,    0.,    0.,    1.]])
-
-            img_nii = nib.Nifti1Image(
-                np.array(
-                    x.detach().cpu()
-                    )[0,0,:,:,:], 
-                affine
-                )
-
-            src_nii = nib.Nifti1Image(
-                np.array(
-                    img.detach().cpu()
-                    )[0,0,:,:,:], 
-                affine
-                )
-
-            nib.save(img_nii, f'{self.sample_save_dir}/generated-img-{idx}.nii.gz')
-            nib.save(src_nii, f'{self.sample_save_dir}/source-img-{idx}.nii.gz')
+        print('--- End of test ---')
 
 
 class VAETrainer(nn.Module):
@@ -137,11 +150,13 @@ class VAETrainer(nn.Module):
         reproduction_loss + KLD : tensor loss
         '''
         mse = nn.MSELoss()
-        reproduction_loss = mse(x, x_hat)
+        #LPIPS = PerceptualLoss(spatial_dims = 3, network_type="medicalnet_resnet50_23datasets", is_fake_3d=False, cache_dir=None, pretrained=True, pretrained_path=None, pretrained_state_dict_key=None, channel_wise=False).to('cpu')
 
+        reproduction_loss = mse(x, x_hat)
+        #perceptual_loss = LPIPS(x.cpu(), x_hat.cpu())
         KLD = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
 
-        return reproduction_loss + self.beta * KLD
+        return reproduction_loss  + self.beta * KLD
 
     def train_step(self, x):
         '''
@@ -170,7 +185,15 @@ class VAETrainer(nn.Module):
         ----------
         dataset : ImageDataset 
         '''
-
+        # Initialize wandb
+        wandb.init(
+            project="VAE",
+            name='VAE Training',
+            config={  # Optional: Hyperparameter configuration
+                "learning_rate": self.lr,
+                "batch_size": self.batch_size,
+            }
+        )
         dataloader = DataLoader(
             dataset, 
             batch_size=self.batch_size, 
@@ -180,16 +203,20 @@ class VAETrainer(nn.Module):
         self.model.train()
 
         print('---- Start training ----')
+        print('\n')
 
         for epoch in range(self.epochs):
             overall_loss = 0
 
-            for idx, x in enumerate(dataloader):
+            for idx, x in enumerate(tqdm(dataloader, desc=f"Epoch {epoch + 1}", total=len(dataloader), dynamic_ncols=True)):
                 loss = self.train_step(x).item()
+                wandb.log({"train_loss (iteration)": loss})
 
-                overall_loss += loss
+            overall_loss += loss
 
             print("\tEpoch", epoch + 1, "\tAverage Loss: ", overall_loss/(idx*self.batch_size))
+            wandb.log({"train_loss (epoch)": overall_loss/(idx*self.batch_size) })
+
             if self.device != 'cpu':
                 if self.device.type == 'cuda':
                     torch.cuda.empty_cache()
@@ -204,6 +231,8 @@ class VAETrainer(nn.Module):
                         self.model_save_dir + 
                         f"/model_{epoch}.pth")
                 self.sample(x, epoch)
+
+        wandb.finish()
 
         return overall_loss
 
@@ -221,8 +250,33 @@ class VAETrainer(nn.Module):
                 )[0,0,:,:,:], 
             affine
             )
+        img_x = nib.Nifti1Image(
+            np.array(
+                x.detach().cpu()
+                )[0,0,:,:,:],
+            affine
+            )
+
+        x_mid = img_x.get_fdata()[:, :, :]
+        x_mid = x_mid[:, x_mid.shape[1] // 2, :]
+        x_mid = (x_mid - np.min(x_mid)) / (np.max(x_mid) - np.min(x_mid))
+        x_mid = (x_mid * 255).astype(np.uint8)
+        x_mid = Image.fromarray(x_mid)
+
+        xgen_mid = img_xgen.get_fdata()[:, :, :]
+        xgen_mid = xgen_mid[:, xgen_mid.shape[1] // 2, :]
+        xgen_mid = (xgen_mid - np.min(xgen_mid)) / (np.max(xgen_mid) - np.min(xgen_mid))
+        xgen_mid = (xgen_mid * 255).astype(np.uint8)
+        xgen_mid = Image.fromarray(xgen_mid)
 
         nib.save(img_xgen, f'{self.model_save_dir}/sample_epoch-{epoch}.nii.gz')
+        wandb.log({
+            "Original": wandb.Image(x_mid, caption="Original"),
+            "Reconstructed": wandb.Image(xgen_mid, caption="Reconstructed"),
+        })
+
+
+
 
 class Autoencoder(nn.Module):
     """

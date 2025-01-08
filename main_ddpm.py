@@ -1,4 +1,4 @@
-from utils.datasets import ClassifDataset
+from utils.datasets import ImageDataset
 from torch.backends import cudnn 
 import torch
 import torch.nn as nn
@@ -21,12 +21,13 @@ def train(config):
 
     ddpm = DDPM(config)
 
-    # Data loader. 
-    dataset_file = f'{config.data_dir}/{config.mode}-{config.dataset}.csv'
+    # Data loader.
+    dataset_file = f'{config.data_dir}/train-{config.dataset}.csv'
+    data_flist = pd.read_csv(dataset_file)['filepaths']
 
-    dataset = ClassifDataset(
-        dataset_file, 
-        config.labels)
+    dataset = ImageDataset(
+        data_flist
+    )
 
     print(f'Dataset {config.dataset}: \n {len(dataset)} images.')
 
@@ -55,7 +56,7 @@ def train(config):
 
         loss_ema = None
 
-        for i, (x, c) in enumerate(loader):
+        for i, (x) in enumerate(loader):
 
             optim.zero_grad()
 
@@ -166,24 +167,24 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--data_dir', type=str, default='./data')
-    parser.add_argument('--dataset', type=str, default='dataset_rh_4classes')
+    parser.add_argument('--dataset', type=str, default='IXI-T1')
     parser.add_argument('--labels', type=str, help='conditions for generation',
                         default='pipelines')
     parser.add_argument('--sample_dir', type=str, default='sampling directory')
     parser.add_argument('--model_save_dir', type=str, default='save directory')
 
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'transfer'])
-    parser.add_argument('--batch_size', type=int, default=32, help='mini-batch size')
+    parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
     parser.add_argument('--n_epoch', type=int, default=500, help='number of total iterations')
     parser.add_argument('--lrate', type=float, default=1e-4, help='learning rate')
-    parser.add_argument('--n_feat', type=int, default=64, help='number of features')
-    parser.add_argument('--n_classes', type=int, default=24, help='number of classes')
+    parser.add_argument('--n_feat', type=int, default=32, help='number of features')
+    parser.add_argument('--n_classes', type=int, default=0, help='number of classes')
     parser.add_argument('--beta', type=tuple, default=(1e-4, 0.02), help='number of classes')
     parser.add_argument('--n_T', type=int, default=500, help='number T')
     parser.add_argument('--n_C', type=int, default=10, help='number C')
-    parser.add_argument('--model_param', type=str, default='./feature_extractor/models/model_b-64_lr-1e-04_epochs_150.pth', 
+    parser.add_argument('--model_param', type=str, default='',
         help='epoch of classifier embedding')
-    parser.add_argument('--ae_param', type=str, default='./vae_models-no_sampling/model_83.pth', 
+    parser.add_argument('--ae_param', type=str, default='./vae/vae-model-200epochs/model_199.pth',
         help='epoch of autoencoder')
     parser.add_argument('--test_iter', type=int, default=30, help='epochs to test')
 

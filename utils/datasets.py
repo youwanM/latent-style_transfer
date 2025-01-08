@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 from glob import glob
 import pandas as pd
 import os
+import torch.nn.functional as F
 
 def create_dataset(data_dir, split=(800,100,100)):
     f_list = sorted(
@@ -93,17 +94,11 @@ class ClassifDataset(Dataset):
         - ids, list of int: list containing all ids of images of the selected dataset
         - labels, list of str: list containing all labels of each data
     '''
-    def __init__(self, dataset_file, label_column):
+    def __init__(self, dataset_file):
 
         df = pd.read_csv(dataset_file)
 
         self.data = df['filepaths'].tolist()
-        self.labels = df[label_column].tolist()
-        self.groups = df['groups'].tolist()
-        self.pipelines = df['pipelines'].tolist()
-        self.contrast = df['contrast'].tolist()
-        
-        self.label_list = sorted(np.unique(self.labels))
 
     def __len__(self):
         return len(self.data)
@@ -123,18 +118,6 @@ class ClassifDataset(Dataset):
         label_vect = torch.tensor(label_vect)
         
         return sample, label_vect
-
-    def get_original_pipelines(self):
-        return self.pipelines
-
-    def get_original_labels(self):
-        return self.labels
-
-    def get_original_group(self):
-        return self.groups
-    
-    def get_original_contrast(self):
-        return self.contrast
 
 class ImageDataset(Dataset):
     '''
@@ -160,5 +143,17 @@ class ImageDataset(Dataset):
         sample = nib.load(fname).get_fdata().copy().astype(float)
         sample = np.nan_to_num(sample)
         sample = torch.tensor(sample).view((1), *sample.shape)
+
+        # Define target size
+        target_size = (1, 256, 256, 144)  # (C, H, W, D)
+
+        # Calculate padding for each dimension
+        pad_h = target_size[1] - sample.shape[1]  # Height padding
+        pad_w = target_size[2] - sample.shape[2]  # Width padding
+        pad_d = target_size[3] - sample.shape[3]  # Depth padding
+
+        # Apply padding to each dimension (pad_left, pad_right, pad_top, pad_bottom, pad_front, pad_back)
+        padding = (0, pad_d, 0, pad_w, 0, pad_h)  # (depth, width, height)
+        padded_sample = F.pad(sample, padding, mode='constant', value=0)
         
-        return sample
+        return padded_sample

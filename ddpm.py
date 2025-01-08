@@ -71,51 +71,52 @@ class DDPM(nn.Module):
 
         self.loss_mse = nn.MSELoss()
 
-        classifier = md.Classifier3D(
-            n_class = config.n_classes
-            )
-        classifier.load_state_dict(
-            torch.load(
-                config.model_param, 
-                map_location='cpu'
-                )
-            )
-        classifier = classifier.state_dict()
+        #classifier = md.Classifier3D(
+        #    n_class = config.n_classes
+        #    )
+        #classifier.load_state_dict(
+        #    torch.load(
+        #        config.model_param,
+        #        map_location='cpu'
+        #        )
+        #    )
+        #classifier = classifier.state_dict()
 
         # Initialize the model with the pre-trained weights
         regressor = md.Regressor3D()
         regressor_dict = regressor.state_dict()
 
         # 1. filter out unnecessary keys
-        classifier = {k: v for k, v in classifier.items() if k in regressor_dict}
+        #classifier = {k: v for k, v in classifier.items() if k in regressor_dict}
         # 2. overwrite entries in the existing state dict
-        regressor_dict.update(classifier) 
+        #regressor_dict.update(classifier)
         # 3. load the new state dict
         regressor.load_state_dict(regressor_dict)
 
-        self.classembed = regressor.eval().to(self.device) 
+        self.classembed = regressor.eval().to(self.device)
 
-        encoder = Encoder(z_channels=4,
+        encoder = Encoder(z_channels=3,
                           in_channels=1,
-                          channels=128,
+                          channels=8,
                           channel_multipliers=[1, 2, 4, 4],
-                          n_resnet_blocks=2)
+                          n_resnet_blocks=1)
 
         decoder = Decoder(out_channels=1,
-                          z_channels=4,
-                          channels=128,
+                          z_channels=3,
+                          channels=8,
                           channel_multipliers=[1, 2, 4, 4],
-                          n_resnet_blocks=2)
+                          n_resnet_blocks=1)
 
         ae = Autoencoder(emb_channels=4,
-                          encoder=encoder,
-                          decoder=decoder,
-                          z_channels=4)
+                         encoder=encoder,
+                         decoder=decoder,
+                         z_channels=3)
 
         ae.load_state_dict(
             torch.load(
                 config.ae_param, 
-                map_location=self.device
+                map_location=self.device,
+                weights_only=True,
                 )
             )
 
