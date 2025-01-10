@@ -17,22 +17,22 @@ def train(config):
     if not os.path.isdir(config.model_save_dir):
         os.mkdir(config.model_save_dir)
 
-    encoder = Encoder(z_channels=32,
+    encoder = Encoder(z_channels=128,
                       in_channels=1,
-                      channels=8,
+                      channels=16,
                       channel_multipliers=[1, 2, 4, 4],
                       n_resnet_blocks=1)
 
     decoder = Decoder(out_channels=1,
-                      z_channels=32,
-                      channels=8,
+                      z_channels=128,
+                      channels=16,
                       channel_multipliers=[1, 2, 4, 4],
                       n_resnet_blocks=1)
 
     ae = Autoencoder(emb_channels=1,
                       encoder=encoder,
                       decoder=decoder,
-                      z_channels=32)
+                      z_channels=128)
 
     # Data loader. 
     dataset_file = f'{config.data_dir}/train-{config.dataset}.csv'
@@ -85,14 +85,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--data_dir', type=str, default='./data')
-    parser.add_argument('--dataset', type=str, default='IXI-T1full')
-    parser.add_argument('--model_save_dir', type=str, default='./vae/vae-model-334epochs z32/')
-    parser.add_argument('--sample_save_dir', type=str, default='./vae-samples')
+    parser.add_argument('--dataset', type=str, default='IXI-T1')
+    parser.add_argument('--model_save_dir', type=str, default='./vae_checkpoints/')
+    parser.add_argument('--sample_save_dir', type=str, default='./vae_samples')
     parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
     parser.add_argument('--epochs', type=int, default=1000, help='number of total iterations')
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--beta', type=float, default=1e-3, help='weight factor for KLD')
-    parser.add_argument('--test_iter', type=int, default=309, help='iteration to test')
+    parser.add_argument('--test_iter', type=int, default=000, help='iteration to test')
     parser.add_argument('--mode', type=str, default='train', help='train or test')
     parser.add_argument('--save_latent_vectors', type=bool, default=True)
 
