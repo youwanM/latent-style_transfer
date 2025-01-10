@@ -124,6 +124,7 @@ class VAETrainer(nn.Module):
 
 
         self.model = ae
+        self.checkpoint = config.load_checkpoint_training
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -199,6 +200,15 @@ class VAETrainer(nn.Module):
             batch_size=self.batch_size, 
             shuffle=True
             )
+        if self.checkpoint != "None":
+            self.model.load_state_dict(
+                torch.load(
+                    self.checkpoint,
+                    map_location = self.device,
+                    weights_only=True,
+                    )
+                )
+            print('Loaded model from checkpoint:', self.checkpoint)
 
         self.model.train()
 
