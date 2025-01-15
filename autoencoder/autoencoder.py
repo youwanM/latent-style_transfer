@@ -152,7 +152,6 @@ class VAETrainer(nn.Module):
         '''
         mse = nn.MSELoss()
         #LPIPS = PerceptualLoss(spatial_dims = 3, network_type="medicalnet_resnet50_23datasets", is_fake_3d=False, cache_dir=None, pretrained=True, pretrained_path=None, pretrained_state_dict_key=None, channel_wise=False).to('cpu')
-
         reproduction_loss = mse(x, x_hat)
         #perceptual_loss = LPIPS(x.cpu(), x_hat.cpu())
         KLD = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
@@ -404,7 +403,7 @@ class Encoder(nn.Module):
 
         # Map to embedding space with a $3 \times 3$ convolution
         self.norm_out = normalization(channels)
-        self.conv_out = nn.Conv3d(channels, 2 * z_channels, (2,3,2), stride=1, padding=(2,2,2), bias=True)
+        self.conv_out = nn.Conv3d(channels, 2 * z_channels, (2, 3, 2), stride=1, padding=(2, 2, 2), bias=True) #kernel size 2,3,2
 
     def forward(self, img: torch.Tensor):
         """
@@ -431,8 +430,6 @@ class Encoder(nn.Module):
         x = self.norm_out(x)
         x = swish(x)
         x = self.conv_out(x)
-
-        #
         return x
 
 
@@ -464,7 +461,7 @@ class Decoder(nn.Module):
         channels = channels_list[-1]
 
         # Initial $3 \times 3$ convolution layer that maps the embedding space to `channels`
-        self.conv_in = nn.Conv3d(z_channels, channels, (5,4,5), stride=1, padding=(1,1,1), bias=True)
+        self.conv_in = nn.Conv3d(z_channels, channels, (5,4,5), stride=1, padding=(1,1,1), bias=True) #kernel size 5,4,5
 
         # ResNet blocks with attention
         self.mid = nn.Module()
@@ -607,7 +604,6 @@ class AttnBlock(nn.Module):
         # Add residual connection
         return x + out
 
-
 class UpSample(nn.Module):
     """
     ## Up-sampling layer
@@ -640,16 +636,15 @@ class DownSample(nn.Module):
         """
         super().__init__()
         # $3 \times 3$ convolution with stride length of $2$ to down-sample by a factor of $2$
-        self.conv = nn.Conv3d(channels, channels, 3, stride=2, padding=0, bias=True)
+        self.conv = nn.Conv3d(channels, channels, 3, stride=2, padding=0, bias=True) #padding initial a 0
 
     def forward(self, x: torch.Tensor):
         """
-        :param x: is the input feature map with shape `[batch_size, channels, height, width]`
+        :param x: is the input feature map with shape `[batch_size, channels, depth, height, width]`
         """
-        # Add padding
-        #x = F.pad(x, (0, 1, 0, 1), mode="constant", value=0)
         # Apply convolution
-        return self.conv(x)
+        out = self.conv(x)
+        return out
 
 
 class ResnetBlock(nn.Module):

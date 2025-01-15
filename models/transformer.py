@@ -76,7 +76,7 @@ class BasicTransformerBlock(nn.Module):
         self.attn1 = CrossAttention(d_model, d_model, n_heads, d_head)
         self.norm1 = nn.LayerNorm(d_model)
         # Cross attention layer and pre-norm layer
-        self.attn2 = CrossAttention(d_model, d_cond, n_heads, d_head)
+        self.attn2= CrossAttention(d_model, d_model, n_heads, d_head)  #removed conditioning
         self.norm2 = nn.LayerNorm(d_model)
         # Feed-forward network and pre-norm layer
         self.ff = FeedForward(d_model)
@@ -90,7 +90,8 @@ class BasicTransformerBlock(nn.Module):
         # Self attention
         x = self.attn1(self.norm1(x)) + x
         # Cross-attention with conditioning
-        x = self.attn2(self.norm2(x), cond=cond) + x
+       # x = self.attn2(self.norm2(x), cond=cond) + x # This is the original code with condirioning
+        x = self.attn2(self.norm2(x)) + x
         # Feed-forward network
         x = self.ff(self.norm3(x)) + x
         #
@@ -154,7 +155,7 @@ class CrossAttention(nn.Module):
     def normal_attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor):
         """
         #### Normal Attention
-        
+
         :param q: are the query vectors before splitting heads, of shape `[batch_size, seq, d_attn]`
         :param k: are the query vectors before splitting heads, of shape `[batch_size, seq, d_attn]`
         :param v: are the query vectors before splitting heads, of shape `[batch_size, seq, d_attn]`

@@ -1,8 +1,10 @@
-from utils.datasets import ImageDataset
+from utils.datasets import ImageDataset, ClassifDataset
 from torch.backends import cudnn 
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.nn import DataParallel
+
 import os
 import argparse
 from ddpm import DDPM
@@ -10,9 +12,19 @@ from autoencoder.autoencoder import Autoencoder, Encoder, Decoder
 import numpy as np 
 import pandas as pd
 import random
-import nibabel as nib 
+import nibabel as nib
+import wandb
+from tqdm import tqdm
 
 def train(config):
+    wandb.init(
+        project="LDM",
+        name='DDPM Training',
+        config={  # Optional: Hyperparameter configuration
+            "learning_rate": 0000,
+            "batch_size": 0000,
+        }
+    )
 
     if not os.path.isdir(config.sample_dir):
         os.mkdir(config.sample_dir)
@@ -56,13 +68,14 @@ def train(config):
 
         loss_ema = None
 
-        for i, (x) in enumerate(loader):
+        for i, (x) in enumerate(tqdm(loader, desc=f"Epoch {ep + 1}", total=len(loader), dynamic_ncols=True)):
 
             optim.zero_grad()
 
             x = x.to(ddpm.device)
 
             loss = ddpm(x.float())
+            wandb.log({"train_loss (iteration)": loss})
             loss.backward()
 
             if loss_ema is None:
@@ -181,10 +194,10 @@ if __name__ == "__main__":
     parser.add_argument('--n_classes', type=int, default=0, help='number of classes')
     parser.add_argument('--beta', type=tuple, default=(1e-4, 0.02), help='number of classes')
     parser.add_argument('--n_T', type=int, default=500, help='number T')
-    parser.add_argument('--n_C', type=int, default=10, help='number C')
+    parser.add_argument('--n_C', type=int, default=0, help='number C')
     parser.add_argument('--model_param', type=str, default='',
         help='epoch of classifier embedding')
-    parser.add_argument('--ae_param', type=str, default='./vae/vae-model-200epochs/model_199.pth',
+    parser.add_argument('--ae_param', type=str, default='./vae_checkpoints/model_1.pth',
         help='epoch of autoencoder')
     parser.add_argument('--test_iter', type=int, default=30, help='epochs to test')
 
@@ -192,6 +205,7 @@ if __name__ == "__main__":
 
     if config.mode == 'train':
         train(config)
+        wandb.finish()
 
     elif config.mode == 'transfer':
         transfer(config)

@@ -7,8 +7,9 @@ from torchvision import models, transforms
 import numpy as np
 from models.unet import UNetModel
 import importlib
-from feature_extractor import model as md 
+from feature_extractor import model as md
 from autoencoder.autoencoder import Autoencoder, Encoder, Decoder
+
 
 def ddpm_schedules(beta1, beta2, T):
     """
@@ -45,16 +46,16 @@ class DDPM(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.nn_model = UNetModel(in_channels=4,
-               out_channels=4,
-               channels=96,
-               attention_levels=[0, 1, 2],
-               n_res_blocks=2,
-               channel_multipliers=[1, 2, 4, 4],
-               n_heads=8,
-               tf_layers=1,
-               d_cond=4096)
+                                  out_channels=4,
+                                  channels=96,
+                                  attention_levels=[0, 1],
+                                  n_res_blocks=1,
+                                  channel_multipliers=[1, 2],
+                                  n_heads=1,
+                                  tf_layers=1,
+                                  d_cond=0)
 
-        self.betas = config.beta 
+        self.betas = config.beta
         self.n_T = config.n_T
         self.n_classes = config.n_classes
 
@@ -71,54 +72,54 @@ class DDPM(nn.Module):
 
         self.loss_mse = nn.MSELoss()
 
-        #classifier = md.Classifier3D(
+        # classifier = md.Classifier3D(
         #    n_class = config.n_classes
         #    )
-        #classifier.load_state_dict(
+        # classifier.load_state_dict(
         #    torch.load(
         #        config.model_param,
         #        map_location='cpu'
         #        )
         #    )
-        #classifier = classifier.state_dict()
+        # classifier = classifier.state_dict()
 
         # Initialize the model with the pre-trained weights
-        regressor = md.Regressor3D()
-        regressor_dict = regressor.state_dict()
+        #regressor = md.Regressor3D()
+        #regressor_dict = regressor.state_dict()
 
         # 1. filter out unnecessary keys
-        #classifier = {k: v for k, v in classifier.items() if k in regressor_dict}
+        # classifier = {k: v for k, v in classifier.items() if k in regressor_dict}
         # 2. overwrite entries in the existing state dict
-        #regressor_dict.update(classifier)
+        # regressor_dict.update(classifier)
         # 3. load the new state dict
-        regressor.load_state_dict(regressor_dict)
+        #regressor.load_state_dict(regressor_dict)
 
-        self.classembed = regressor.eval().to(self.device)
+        #self.classembed = regressor.eval().to(self.device)
 
-        encoder = Encoder(z_channels=3,
+        encoder = Encoder(z_channels=4,
                           in_channels=1,
-                          channels=8,
+                          channels=16,
                           channel_multipliers=[1, 2, 4, 4],
-                          n_resnet_blocks=1)
+                          n_resnet_blocks=2)
 
         decoder = Decoder(out_channels=1,
-                          z_channels=3,
-                          channels=8,
+                          z_channels=4,
+                          channels=16,
                           channel_multipliers=[1, 2, 4, 4],
-                          n_resnet_blocks=1)
+                          n_resnet_blocks=2)
 
         ae = Autoencoder(emb_channels=4,
                          encoder=encoder,
                          decoder=decoder,
-                         z_channels=3)
+                         z_channels=4)
 
         ae.load_state_dict(
             torch.load(
-                config.ae_param, 
+                config.ae_param,
                 map_location=self.device,
                 weights_only=True,
-                )
             )
+        )
 
         self.vae = ae.eval().to(self.device)
 
@@ -126,25 +127,29 @@ class DDPM(nn.Module):
         """
         this method is used in training, so samples t and noise randomly
         """
-        # for sampling noise and real 
+        # for sampling noise and real
         x = self.vae.encode(x_img.float().to(self.device)).mode()
+        print(x.shape)
 
-        _ts = torch.randint(1, self.n_T+1, (x.shape[0],)).to(self.device)  # t ~ Uniform(0, n_T)
+        _ts = torch.randint(1, self.n_T + 1, (x.shape[0],)).to(self.device)  # t ~ Uniform(0, n_T)
         noise = torch.randn_like(x)  # eps ~ N(0, 1)
 
         x_t = (
-            self.sqrtab.to(self.device)[_ts, None, None, None, None] * x
-            + self.sqrtmab.to(self.device)[_ts, None, None, None, None] * noise
+                self.sqrtab.to(self.device)[_ts, None, None, None, None] * x
+                + self.sqrtmab.to(self.device)[_ts, None, None, None, None] * noise
         )  # This is the x_t, which is sqrt(alphabar) x_0 + sqrt(1-alphabar) * eps
         # We should predict the "error term" from this x_t. Loss is what we return.
 
-        cemb = self.classembed(x_img.float().to(self.device))
-        cemb = cemb.unsqueeze(1)
+        #cemb = self.classembed(x_img.float().to(self.device))
+        #cemb = cemb.unsqueeze(1)
+        cemb = 0
 
         t = _ts / self.n_T
 
         # return MSE between added noise, and our predicted noise
-        return self.loss_mse(noise, self.nn_model(x_t, t, cemb))
+        with torch.cuda.amp.autocast():
+            loss = self.loss_mse(noise, self.nn_model(x_t, t, cemb))
+        return loss
 
     def transfer(self, source, target):
 
@@ -152,8 +157,8 @@ class DDPM(nn.Module):
 
         noise = torch.randn_like(x_i)  # eps ~ N(0, 1)
         x_t = (
-            self.sqrtab.to(self.device)[self.n_T] * x_i
-            + self.sqrtmab.to(self.device)[self.n_T] * noise
+                self.sqrtab.to(self.device)[self.n_T] * x_i
+                + self.sqrtmab.to(self.device)[self.n_T] * noise
         )
 
         cemb_list = []
@@ -161,25 +166,24 @@ class DDPM(nn.Module):
         for x_trg in target:
             cemb_list.append(self.classembed(x_trg.unsqueeze(1).float().to(self.device)).cpu())
 
-        cemb = torch.tensor(np.mean(cemb_list,0)).to(self.device)
+        cemb = torch.tensor(np.mean(cemb_list, 0)).to(self.device)
         cemb = cemb.unsqueeze(1)
 
         for i in range(self.n_T, 0, -1):
-
-            print(f'sampling timestep {i}',end='\r')
+            print(f'sampling timestep {i}', end='\r')
             t_is = torch.tensor([i / self.n_T]).to(self.device)
-            #t_is = t_is.repeat(1,1,1,1,1)
+            # t_is = t_is.repeat(1,1,1,1,1)
 
             z = torch.randn(*x_t.shape).to(self.device) if i > 1 else 0
 
-            # split predictions and compute weighting  
+            # split predictions and compute weighting
             eps = self.nn_model(x_t.float(), t_is.float(), cemb.float())
 
             x_t = (
-                self.oneover_sqrta[i] * (x_t - eps * self.mab_over_sqrtmab[i])
-                + self.sqrt_beta_t[i] * z
-            ) 
+                    self.oneover_sqrta[i] * (x_t - eps * self.mab_over_sqrtmab[i])
+                    + self.sqrt_beta_t[i] * z
+            )
 
         x_g = self.vae.decode(x_t)
-        
+
         return x_g
