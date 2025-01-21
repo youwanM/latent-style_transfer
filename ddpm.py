@@ -129,7 +129,6 @@ class DDPM(nn.Module):
         """
         # for sampling noise and real
         x = self.vae.encode(x_img.float().to(self.device)).mode()
-        print(x.shape)
 
         _ts = torch.randint(1, self.n_T + 1, (x.shape[0],)).to(self.device)  # t ~ Uniform(0, n_T)
         noise = torch.randn_like(x)  # eps ~ N(0, 1)

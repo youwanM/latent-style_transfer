@@ -80,9 +80,9 @@ def compare_pth_files(file1, file2):
 
 if __name__ == "__main__":
     # Replace these with your file paths
-    file1 = "/home/ymahe/g5k/latent-style_transfer/vae_checkpoints/vae_test.pth"
-    file2 = "/home/ymahe/g5k/latent-style_transfer/vae_checkpoints/model_67.pth"
-    output_file = "/home/ymahe/g5k/latent-style_transfer/vae_checkpoints/vae_transfer.pth"
+    file1 = "./vae_checkpoints/Jan_15_2025_69.pth"
+    file2 = "./vae_checkpoints/vae_test.pth"
+    output_file = "./vae_checkpoints/vae_transfer.pth"
 
     create_new_pth(file1, file2, output_file)
     compare_pth_files(file1, output_file)

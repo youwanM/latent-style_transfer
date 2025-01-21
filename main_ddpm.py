@@ -189,7 +189,7 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'transfer'])
     parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
     parser.add_argument('--n_epoch', type=int, default=500, help='number of total iterations')
-    parser.add_argument('--lrate', type=float, default=1e-4, help='learning rate')
+    parser.add_argument('--lrate', type=float, default=5e-5, help='learning rate')
     parser.add_argument('--n_feat', type=int, default=32, help='number of features')
     parser.add_argument('--n_classes', type=int, default=0, help='number of classes')
     parser.add_argument('--beta', type=tuple, default=(1e-4, 0.02), help='number of classes')
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_C', type=int, default=0, help='number C')
     parser.add_argument('--model_param', type=str, default='',
         help='epoch of classifier embedding')
-    parser.add_argument('--ae_param', type=str, default='./vae_checkpoints/model_1.pth',
+    parser.add_argument('--ae_param', type=str, default='./vae_checkpoints/Jan_19_2025_95.pth',
         help='epoch of autoencoder')
     parser.add_argument('--test_iter', type=int, default=30, help='epochs to test')
 

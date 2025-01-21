@@ -403,7 +403,7 @@ class Encoder(nn.Module):
 
         # Map to embedding space with a $3 \times 3$ convolution
         self.norm_out = normalization(channels)
-        self.conv_out = nn.Conv3d(channels, 2 * z_channels, (2, 3, 2), stride=1, padding=(2, 2, 2), bias=True) #kernel size 2,3,2
+        self.conv_out = nn.Conv3d(channels, 2 * z_channels, (2, 2, 2), stride=1, padding=(2, 2, 2), bias=True) #kernel size 2,3,2
 
     def forward(self, img: torch.Tensor):
         """
@@ -461,7 +461,7 @@ class Decoder(nn.Module):
         channels = channels_list[-1]
 
         # Initial $3 \times 3$ convolution layer that maps the embedding space to `channels`
-        self.conv_in = nn.Conv3d(z_channels, channels, (5,4,5), stride=1, padding=(1,1,1), bias=True) #kernel size 5,4,5
+        self.conv_in = nn.Conv3d(z_channels, channels, (5,5,5), stride=1, padding=(1,1,1), bias=True) #kernel size 5,4,5
 
         # ResNet blocks with attention
         self.mid = nn.Module()

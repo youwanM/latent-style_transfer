@@ -52,22 +52,22 @@ def test(config):
     if not os.path.isdir(config.sample_save_dir):
         os.mkdir(config.sample_save_dir)
 
-    encoder = Encoder(z_channels=128,
+    encoder = Encoder(z_channels=4,
                       in_channels=1,
                       channels=16,
                       channel_multipliers=[1, 2, 4, 4],
-                      n_resnet_blocks=1)
+                      n_resnet_blocks=2)
 
     decoder = Decoder(out_channels=1,
-                      z_channels=128,
+                      z_channels=4,
                       channels=16,
                       channel_multipliers=[1, 2, 4, 4],
-                      n_resnet_blocks=1)
+                      n_resnet_blocks=2)
 
-    ae = Autoencoder(emb_channels=1,
+    ae = Autoencoder(emb_channels=4,
                       encoder=encoder,
                       decoder=decoder,
-                      z_channels=128)
+                      z_channels=4)
 
     # Data loader. 
     dataset_file = f'{config.data_dir}/test-{config.dataset}.csv'
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--data_dir', type=str, default='./data')
-    parser.add_argument('--dataset', type=str, default='IXI-T1_g5k')
+    parser.add_argument('--dataset', type=str, default='IXI-T1')
     parser.add_argument('--model_save_dir', type=str, default='./vae_checkpoints/')
     parser.add_argument('--sample_save_dir', type=str, default='./vae_samples')
     parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
