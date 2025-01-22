@@ -183,8 +183,8 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='IXI-T1')
     parser.add_argument('--labels', type=str, help='conditions for generation',
                         default='pipelines')
-    parser.add_argument('--sample_dir', type=str, default='sampling directory')
-    parser.add_argument('--model_save_dir', type=str, default='save directory')
+    parser.add_argument('--sample_dir', type=str, default='ddpm_sampling')
+    parser.add_argument('--model_save_dir', type=str, default='ddpm_checkpoints')
 
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'transfer'])
     parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
