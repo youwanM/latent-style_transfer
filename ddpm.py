@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import models, transforms
+from tqdm import tqdm
 import numpy as np
 from models.unet import UNetModel
 import importlib
@@ -150,7 +151,7 @@ class DDPM(nn.Module):
             loss = self.loss_mse(noise, self.nn_model(x_t, t, cemb))
         return loss
 
-    def transfer(self, source, target):
+    def transfer(self, source):
 
         x_i = self.vae.encode(source.to(self.device).float()).sample()
 
@@ -160,23 +161,16 @@ class DDPM(nn.Module):
                 + self.sqrtmab.to(self.device)[self.n_T] * noise
         )
 
-        cemb_list = []
+        cemb = 0
 
-        for x_trg in target:
-            cemb_list.append(self.classembed(x_trg.unsqueeze(1).float().to(self.device)).cpu())
-
-        cemb = torch.tensor(np.mean(cemb_list, 0)).to(self.device)
-        cemb = cemb.unsqueeze(1)
-
-        for i in range(self.n_T, 0, -1):
-            print(f'sampling timestep {i}', end='\r')
+        for i in tqdm(range(self.n_T, 0, -1), desc="Sampling Timesteps"):
             t_is = torch.tensor([i / self.n_T]).to(self.device)
             # t_is = t_is.repeat(1,1,1,1,1)
 
             z = torch.randn(*x_t.shape).to(self.device) if i > 1 else 0
 
             # split predictions and compute weighting
-            eps = self.nn_model(x_t.float(), t_is.float(), cemb.float())
+            eps = self.nn_model(x_t.float(), t_is.float(), cemb)
 
             x_t = (
                     self.oneover_sqrta[i] * (x_t - eps * self.mab_over_sqrtmab[i])
