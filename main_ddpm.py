@@ -87,7 +87,8 @@ def train(config):
 
         print('Loss:', loss_ema)
 
-        if ep %10 == 0 or ep == config.n_epoch:
+        if ep %2 == 0 or ep == config.n_epoch:
+            #ddpm.transfer(x)
             if torch.cuda.device_count() > 1:
                 torch.save(ddpm.nn_model.module.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
             else:
