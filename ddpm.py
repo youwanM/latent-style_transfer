@@ -53,8 +53,7 @@ class DDPM(nn.Module):
                                   n_res_blocks=1,
                                   channel_multipliers=[1, 2],
                                   n_heads=1,
-                                  tf_layers=1,
-                                  d_cond=0)
+                                  tf_layers=1)
 
         self.betas = config.beta
         self.n_T = config.n_T
@@ -148,7 +147,7 @@ class DDPM(nn.Module):
 
         # return MSE between added noise, and our predicted noise
         with torch.cuda.amp.autocast():
-            loss = self.loss_mse(noise, self.nn_model(x_t, t, cemb))
+            loss = self.loss_mse(noise, self.nn_model(x_t, t))
         return loss
 
     def transfer(self, source):

@@ -26,6 +26,8 @@ def train(config):
         }
     )
 
+    torch.manual_seed(42)
+
     if not os.path.isdir(config.sample_dir):
         os.mkdir(config.sample_dir)
     if not os.path.isdir(config.model_save_dir):
@@ -66,7 +68,7 @@ def train(config):
         # linear lrate decay
         optim.param_groups[0]['lr'] = config.lrate * (1 - ep / config.n_epoch)
 
-        loss_ema = None
+        loss_ema = True
 
         for i, (x) in enumerate(tqdm(loader, desc=f"Epoch {ep + 1}", total=len(loader), dynamic_ncols=True)):
 
@@ -88,7 +90,6 @@ def train(config):
         print('Loss:', loss_ema)
 
         if ep %2 == 0 or ep == config.n_epoch:
-            #ddpm.transfer(x)
             if torch.cuda.device_count() > 1:
                 torch.save(ddpm.nn_model.module.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
             else:
@@ -189,7 +190,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'transfer'])
     parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
-    parser.add_argument('--n_epoch', type=int, default=500, help='number of total iterations')
+    parser.add_argument('--n_epoch', type=int, default=1000, help='number of total iterations')
     parser.add_argument('--lrate', type=float, default=5e-5, help='learning rate')
     parser.add_argument('--n_feat', type=int, default=32, help='number of features')
     parser.add_argument('--n_classes', type=int, default=0, help='number of classes')

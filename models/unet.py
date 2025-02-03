@@ -38,8 +38,7 @@ class UNetModel(nn.Module):
             attention_levels: List[int],
             channel_multipliers: List[int],
             n_heads: int,
-            tf_layers: int = 1,
-            d_cond: int = 768):
+            tf_layers: int = 1):
         """
         :param in_channels: is the number of channels in the input feature map
         :param out_channels: is the number of channels in the output feature map
@@ -49,7 +48,6 @@ class UNetModel(nn.Module):
         :param channel_multipliers: are the multiplicative factors for number of channels for each level
         :param n_heads: is the number of attention heads in the transformers
         :param tf_layers: is the number of transformer layers in the transformers
-        :param d_cond: is the size of the conditional embedding in the transformers
         """
         super().__init__()
         self.channels = channels
@@ -88,7 +86,7 @@ class UNetModel(nn.Module):
                 channels = channels_list[i]
                 # Add transformer
                 if i in attention_levels:
-                    layers.append(SpatialTransformer(channels, n_heads, tf_layers, d_cond))
+                    layers.append(SpatialTransformer(channels, n_heads, tf_layers))
                 # Add them to the input half of the U-Net and keep track of the number of channels of
                 # its output
                 self.input_blocks.append(TimestepEmbedSequential(*layers))
@@ -101,7 +99,7 @@ class UNetModel(nn.Module):
         # The middle of the U-Net
         self.middle_block = TimestepEmbedSequential(
             ResBlock(channels, d_time_emb),
-            SpatialTransformer(channels, n_heads, tf_layers, d_cond),
+            SpatialTransformer(channels, n_heads, tf_layers),
             ResBlock(channels, d_time_emb),
         )
 
@@ -118,7 +116,7 @@ class UNetModel(nn.Module):
                 channels = channels_list[i]
                 # Add transformer
                 if i in attention_levels:
-                    layers.append(SpatialTransformer(channels, n_heads, tf_layers, d_cond))
+                    layers.append(SpatialTransformer(channels, n_heads, tf_layers))
                 # Up-sample at every level after last residual block
                 # except the last one.
                 # Note that we are iterating in reverse; i.e. `i == 0` is the last.
@@ -152,11 +150,10 @@ class UNetModel(nn.Module):
         # $\cos\Bigg(\frac{t}{10000^{\frac{2i}{c}}}\Bigg)$ and $\sin\Bigg(\frac{t}{10000^{\frac{2i}{c}}}\Bigg)$
         return torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
 
-    def forward(self, x: torch.Tensor, time_steps: torch.Tensor, cond: torch.Tensor):
+    def forward(self, x: torch.Tensor, time_steps: torch.Tensor):
         """
         :param x: is the input feature map of shape `[batch_size, channels, width, height]`
         :param time_steps: are the time steps of shape `[batch_size]`
-        :param cond: conditioning of shape `[batch_size, n_cond, d_cond]`
         """
         # To store the input half outputs for skip connections
         x_input_block = []
@@ -167,14 +164,14 @@ class UNetModel(nn.Module):
 
         # Input half of the U-Net
         for module in self.input_blocks:
-            x = module(x, t_emb, cond)
+            x = module(x, t_emb)
             x_input_block.append(x)
         # Middle of the U-Net
-        x = self.middle_block(x, t_emb, cond)
+        x = self.middle_block(x, t_emb)
         # Output half of the U-Net
         for i, module in enumerate(self.output_blocks):
             x = torch.cat([x, x_input_block[-i-1]], dim=1)
-            x = module(x, t_emb, cond)
+            x = module(x, t_emb)
 
         # Final normalization and $3 \times 3$ convolution
         return self.out(x)
@@ -188,12 +185,12 @@ class TimestepEmbedSequential(nn.Sequential):
     `nn.Conv` and `SpatialTransformer` and calls them with the matching signatures
     """
 
-    def forward(self, x, t_emb, cond=None):
+    def forward(self, x, t_emb):
         for layer in self:
             if isinstance(layer, ResBlock):
                 x = layer(x, t_emb)
             elif isinstance(layer, SpatialTransformer):
-                x = layer(x, cond)
+                x = layer(x)
             else:
                 x = layer(x)
         return x
@@ -329,7 +326,7 @@ def _test_time_embeddings():
     plt.figure(figsize=(15, 5))
     m = UNetModel(in_channels=1, out_channels=1, channels=320, n_res_blocks=1, attention_levels=[],
                   channel_multipliers=[],
-                  n_heads=1, tf_layers=1, d_cond=1)
+                  n_heads=1, tf_layers=1)
     te = m.time_step_embedding(torch.arange(0, 1000))
     plt.plot(np.arange(1000), te[:, [50, 100, 190, 260]].numpy())
     plt.legend(["dim %d" % p for p in [50, 100, 190, 260]])
