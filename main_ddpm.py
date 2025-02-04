@@ -53,7 +53,8 @@ def train(config):
 
     optim = torch.optim.Adam(
         ddpm.parameters(), 
-        lr=config.lrate
+        lr=config.lrate,
+        weight_decay=1e-2
         )
 
     for ep in range(config.n_epoch):
@@ -85,6 +86,8 @@ def train(config):
             else:
                 loss_ema = 0.95 * loss_ema + 0.05 * loss.item()
 
+            nn.utils.clip_grad_norm_(ddpm.nn_model.parameters(), max_norm=1.0)
+
             optim.step()
 
         print('Loss:', loss_ema)
@@ -94,6 +97,34 @@ def train(config):
                 torch.save(ddpm.nn_model.module.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
             else:
                 torch.save(ddpm.nn_model.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
+            
+            ddpm.eval()
+
+        with torch.no_grad():
+            x_gen = ddpm.transfer(x)
+
+            affine = np.array([[   4.,    0.,    0.,  -98.],
+                       [   0.,    4.,    0., -134.],
+                       [   0.,    0.,    4.,  -72.],
+                       [   0.,    0.,    0.,    1.]])
+
+            img_xgen = nib.Nifti1Image(
+            np.array(
+                x_gen.detach().cpu()
+                )[0,0,:,:,:], 
+            affine
+            )
+
+            img_xsrc = nib.Nifti1Image(
+            np.array(
+                x.detach().cpu()
+                )[0,0,:,:,:], 
+            affine
+            )
+
+            nib.save(img_xgen, f'{config.sample_dir}/gen-image_{i}-{config.dataset}.nii.gz')
+            nib.save(img_xsrc, f'{config.sample_dir}/src-image_{i}-{config.dataset}.nii.gz')
+            ddpm.train()
 
 def transfer(config):
     # Load models
@@ -125,58 +156,29 @@ def transfer(config):
         ddpm.eval()
 
         with torch.no_grad():
-            for i in range(config.n_classes):
+            x_gen = ddpm.transfer(x)
 
-                class_idx = [cl for cl in range(len(dataset.get_original_labels())) if dataset.get_original_labels()[cl]==dataset.label_list[i]]
+            affine = np.array([[   4.,    0.,    0.,  -98.],
+                       [   0.,    4.,    0., -134.],
+                       [   0.,    0.,    4.,  -72.],
+                       [   0.,    0.,    0.,    1.]])
 
-                i_t_list = random.sample(class_idx, config.n_C)
+            img_xgen = nib.Nifti1Image(
+            np.array(
+                x_gen.detach().cpu()
+                )[0,0,:,:,:], 
+            affine
+            )
 
-                x_t_list = []
+            img_xsrc = nib.Nifti1Image(
+            np.array(
+                x.detach().cpu()
+                )[0,0,:,:,:], 
+            affine
+            )
 
-                for i_t in i_t_list:
-
-                    x_t, c_t = dataset[i_t]
-
-                    x_t_list.append(x_t)
-
-                x_gen = ddpm.transfer(
-                x, x_t_list
-                )
-
-                affine = np.array([[   4.,    0.,    0.,  -98.],
-                                   [   0.,    4.,    0., -134.],
-                                   [   0.,    0.,    4.,  -72.],
-                                   [   0.,    0.,    0.,    1.]])
-
-                img_xgen = nib.Nifti1Image(
-                    np.array(
-                        x_gen.detach().cpu()
-                        )[0,0,:,:,:], 
-                    affine
-                    )
-
-                x_r, c_r = dataset[n//config.n_classes*config.n_classes+i]
-
-                img_xreal = nib.Nifti1Image(
-                    np.array(
-                        x_r.detach().cpu()
-                        )[0,:,:,:], 
-                    affine
-                    )
-
-                img_xsrc = nib.Nifti1Image(
-                    np.array(
-                        x.detach().cpu()
-                        )[0,0,:,:,:], 
-                    affine
-                    )
-
-                c_idx = torch.argmax(c, dim=1)[0]
-                c_t_idx = torch.argmax(c_t, dim=0)
-
-                nib.save(img_xgen, f'{config.sample_dir}/gen-image_{n}-{config.dataset}_ep{config.test_iter}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
-                nib.save(img_xreal, f'{config.sample_dir}/trg-image_{n}-{config.dataset}_ep{config.test_iter}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
-                nib.save(img_xsrc, f'{config.sample_dir}/src-image_{n}-{config.dataset}_ep{config.test_iter}_n{config.n_C}-orig_{c_idx}-target_{c_t_idx}.nii.gz')
+            nib.save(img_xgen, f'{config.sample_dir}/gen-image_{n}-{config.dataset}_ep{config.test_iter}.nii.gz')
+            nib.save(img_xsrc, f'{config.sample_dir}/src-image_{n}-{config.dataset}_ep{config.test_iter}.nii.gz')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -186,19 +188,14 @@ if __name__ == "__main__":
     parser.add_argument('--labels', type=str, help='conditions for generation',
                         default='pipelines')
     parser.add_argument('--sample_dir', type=str, default='ddpm_sampling')
-    parser.add_argument('--model_save_dir', type=str, default='ddpm_checkpoints')
+    parser.add_argument('--model_save_dir', type=str, default='ddpm_temp')
 
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'transfer'])
     parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
     parser.add_argument('--n_epoch', type=int, default=1000, help='number of total iterations')
     parser.add_argument('--lrate', type=float, default=5e-5, help='learning rate')
-    parser.add_argument('--n_feat', type=int, default=32, help='number of features')
-    parser.add_argument('--n_classes', type=int, default=0, help='number of classes')
-    parser.add_argument('--beta', type=tuple, default=(1e-4, 0.02), help='number of classes')
-    parser.add_argument('--n_T', type=int, default=500, help='number T')
-    parser.add_argument('--n_C', type=int, default=0, help='number C')
-    parser.add_argument('--model_param', type=str, default='',
-        help='epoch of classifier embedding')
+    parser.add_argument('--beta', type=tuple, default=(1e-4, 0.02), help='Beta Schedule for DDPM')
+    parser.add_argument('--n_T', type=int, default=1000, help='number T')
     parser.add_argument('--ae_param', type=str, default='./vae_checkpoints/Jan_19_2025_95.pth',
         help='epoch of autoencoder')
     parser.add_argument('--test_iter', type=int, default=30, help='epochs to test')

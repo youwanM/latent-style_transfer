@@ -7,6 +7,7 @@ from torchvision import models, transforms
 from tqdm import tqdm
 import numpy as np
 from models.unet import UNetModel
+import torch.nn.init as init
 import importlib
 from feature_extractor import model as md
 from autoencoder.autoencoder import Autoencoder, Encoder, Decoder
@@ -40,6 +41,11 @@ def ddpm_schedules(beta1, beta2, T):
         "mab_over_sqrtmab": mab_over_sqrtmab_inv,  # (1-\alpha_t)/\sqrt{1-\bar{\alpha_t}}
     }
 
+def init_weights_normal(m):
+    if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+        init.normal_(m.weight, mean=0.0, std=0.02)
+        if m.bias is not None:
+            init.zeros_(m.bias)
 
 class DDPM(nn.Module):
     def __init__(self, config):
@@ -57,11 +63,11 @@ class DDPM(nn.Module):
 
         self.betas = config.beta
         self.n_T = config.n_T
-        self.n_classes = config.n_classes
 
         if torch.cuda.device_count() > 1:
-            print("Let's use", torch.cuda.device_count(), "GPUs!")
             self.nn_model = nn.DataParallel(self.nn_model)
+
+        print("Let's use", torch.cuda.device_count(), "GPU(s)!")
 
         self.nn_model.to(self.device)
 
@@ -71,30 +77,6 @@ class DDPM(nn.Module):
             self.register_buffer(k, v)
 
         self.loss_mse = nn.MSELoss()
-
-        # classifier = md.Classifier3D(
-        #    n_class = config.n_classes
-        #    )
-        # classifier.load_state_dict(
-        #    torch.load(
-        #        config.model_param,
-        #        map_location='cpu'
-        #        )
-        #    )
-        # classifier = classifier.state_dict()
-
-        # Initialize the model with the pre-trained weights
-        #regressor = md.Regressor3D()
-        #regressor_dict = regressor.state_dict()
-
-        # 1. filter out unnecessary keys
-        # classifier = {k: v for k, v in classifier.items() if k in regressor_dict}
-        # 2. overwrite entries in the existing state dict
-        # regressor_dict.update(classifier)
-        # 3. load the new state dict
-        #regressor.load_state_dict(regressor_dict)
-
-        #self.classembed = regressor.eval().to(self.device)
 
         encoder = Encoder(z_channels=4,
                           in_channels=1,
@@ -122,6 +104,8 @@ class DDPM(nn.Module):
         )
 
         self.vae = ae.eval().to(self.device)
+        # Weight initialization
+        self.nn_model.apply(init_weights_normal)
 
     def forward(self, x_img):
         """
@@ -138,10 +122,6 @@ class DDPM(nn.Module):
                 + self.sqrtmab.to(self.device)[_ts, None, None, None, None] * noise
         )  # This is the x_t, which is sqrt(alphabar) x_0 + sqrt(1-alphabar) * eps
         # We should predict the "error term" from this x_t. Loss is what we return.
-
-        #cemb = self.classembed(x_img.float().to(self.device))
-        #cemb = cemb.unsqueeze(1)
-        cemb = 0
 
         t = _ts / self.n_T
 
@@ -160,8 +140,6 @@ class DDPM(nn.Module):
                 + self.sqrtmab.to(self.device)[self.n_T] * noise
         )
 
-        cemb = 0
-
         for i in tqdm(range(self.n_T, 0, -1), desc="Sampling Timesteps"):
             t_is = torch.tensor([i / self.n_T]).to(self.device)
             # t_is = t_is.repeat(1,1,1,1,1)
@@ -169,7 +147,7 @@ class DDPM(nn.Module):
             z = torch.randn(*x_t.shape).to(self.device) if i > 1 else 0
 
             # split predictions and compute weighting
-            eps = self.nn_model(x_t.float(), t_is.float(), cemb)
+            eps = self.nn_model(x_t.float(), t_is.float())
 
             x_t = (
                     self.oneover_sqrta[i] * (x_t - eps * self.mab_over_sqrtmab[i])
