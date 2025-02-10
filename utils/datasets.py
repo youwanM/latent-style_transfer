@@ -154,6 +154,7 @@ class ImageDataset(Dataset):
 
         # Apply padding to each dimension (pad_left, pad_right, pad_top, pad_bottom, pad_front, pad_back)
         padding = (0, pad_d, 0, pad_w, 0, pad_h)  # (depth, width, height)
-        padded_sample = F.pad(sample, padding, mode='constant', value=0)
+        #padded_sample = F.pad(sample, padding, mode='constant', value=0) #Removing padding
+        padded_sample = sample
         
         return padded_sample

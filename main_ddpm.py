@@ -124,6 +124,15 @@ def train(config):
 
             nib.save(img_xgen, f'{config.sample_dir}/gen-image_{i}-{config.dataset}.nii.gz')
             nib.save(img_xsrc, f'{config.sample_dir}/src-image_{i}-{config.dataset}.nii.gz')
+
+            # Save middle slices to wandb
+            middle_slice_gen = x_gen.detach().cpu().numpy()[0, 0, :, :, x_gen.shape[4] // 2]
+            middle_slice_src = x.detach().cpu().numpy()[0, 0, :, :, x.shape[4] // 2]
+
+            wandb.log({
+                "Generated ": wandb.Image(middle_slice_gen, caption=f"Generated Image {i}"),
+                "Source ": wandb.Image(middle_slice_src, caption=f"Source Image {i}")
+            })
             ddpm.train()
 
 def transfer(config):

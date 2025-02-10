@@ -151,10 +151,10 @@ class VAETrainer(nn.Module):
         reproduction_loss + KLD : tensor loss
         '''
         mse = nn.MSELoss()
-        #LPIPS = PerceptualLoss(spatial_dims = 3, network_type="medicalnet_resnet50_23datasets", is_fake_3d=False, cache_dir=None, pretrained=True, pretrained_path=None, pretrained_state_dict_key=None, channel_wise=False).to('cpu')
         reproduction_loss = mse(x, x_hat)
-        #perceptual_loss = LPIPS(x.cpu(), x_hat.cpu())
         KLD = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
+        wandb.log({"reconstruction_loss": reproduction_loss})
+        wandb.log({"Beta*KLD": self.beta * KLD})
 
         return reproduction_loss  + self.beta * KLD
 
@@ -221,7 +221,7 @@ class VAETrainer(nn.Module):
                 loss = self.train_step(x).item()
                 wandb.log({"train_loss (iteration)": loss})
 
-            overall_loss += loss
+                overall_loss += loss
 
             print("\tEpoch", epoch + 1, "\tAverage Loss: ", overall_loss/(idx*self.batch_size))
             wandb.log({"train_loss (epoch)": overall_loss/(idx*self.batch_size) })
@@ -267,13 +267,13 @@ class VAETrainer(nn.Module):
             )
 
         x_mid = img_x.get_fdata()[:, :, :]
-        x_mid = x_mid[:, x_mid.shape[1] // 2, :]
+        x_mid = x_mid[:, :, x_mid.shape[2] // 2]
         x_mid = (x_mid - np.min(x_mid)) / (np.max(x_mid) - np.min(x_mid))
         x_mid = (x_mid * 255).astype(np.uint8)
         x_mid = Image.fromarray(x_mid)
 
         xgen_mid = img_xgen.get_fdata()[:, :, :]
-        xgen_mid = xgen_mid[:, xgen_mid.shape[1] // 2, :]
+        xgen_mid = xgen_mid[:, :, xgen_mid.shape[2] // 2]
         xgen_mid = (xgen_mid - np.min(xgen_mid)) / (np.max(xgen_mid) - np.min(xgen_mid))
         xgen_mid = (xgen_mid * 255).astype(np.uint8)
         xgen_mid = Image.fromarray(xgen_mid)
