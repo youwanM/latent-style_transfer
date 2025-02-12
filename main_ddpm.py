@@ -193,19 +193,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--data_dir', type=str, default='./data')
-    parser.add_argument('--dataset', type=str, default='IXI-T1')
+    parser.add_argument('--dataset', type=str, default='IXI-T1-preproc')
     parser.add_argument('--labels', type=str, help='conditions for generation',
                         default='pipelines')
     parser.add_argument('--sample_dir', type=str, default='ddpm_sampling')
-    parser.add_argument('--model_save_dir', type=str, default='ddpm_temp')
+    parser.add_argument('--model_save_dir', type=str, default='ddpm_checkpoints')
 
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'transfer'])
     parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
     parser.add_argument('--n_epoch', type=int, default=1000, help='number of total iterations')
     parser.add_argument('--lrate', type=float, default=5e-5, help='learning rate')
     parser.add_argument('--beta', type=tuple, default=(1e-4, 0.02), help='Beta Schedule for DDPM')
-    parser.add_argument('--n_T', type=int, default=1000, help='number T')
-    parser.add_argument('--ae_param', type=str, default='./vae_checkpoints/Jan_19_2025_95.pth',
+    parser.add_argument('--n_T', type=int, default=500, help='number T')
+    parser.add_argument('--ae_param', type=str, default='./vae_checkpoints/model_321.pth',
         help='epoch of autoencoder')
     parser.add_argument('--test_iter', type=int, default=30, help='epochs to test')
 

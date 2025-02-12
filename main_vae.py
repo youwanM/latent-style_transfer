@@ -86,10 +86,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--data_dir', type=str, default='./data')
-    parser.add_argument('--dataset', type=str, default='IXI-T1')
+    parser.add_argument('--dataset', type=str, default='IXI-T1-preproc')
     parser.add_argument('--model_save_dir', type=str, default='./vae_checkpoints/')
     parser.add_argument('--sample_save_dir', type=str, default='./vae_samples')
-    parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
+    parser.add_argument('--batch_size', type=int, default=2, help='mini-batch size')
     parser.add_argument('--epochs', type=int, default=1000, help='number of total iterations')
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--beta', type=float, default=1e-3, help='weight factor for KLD')
