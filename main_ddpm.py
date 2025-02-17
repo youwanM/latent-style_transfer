@@ -15,6 +15,7 @@ import random
 import nibabel as nib
 import wandb
 from tqdm import tqdm
+from PIL import Image
 
 def train(config):
     wandb.init(
@@ -69,7 +70,7 @@ def train(config):
         # linear lrate decay
         optim.param_groups[0]['lr'] = config.lrate * (1 - ep / config.n_epoch)
 
-        loss_ema = True
+        loss_ema = False
 
         for i, (x) in enumerate(tqdm(loader, desc=f"Epoch {ep + 1}", total=len(loader), dynamic_ncols=True)):
 
@@ -92,7 +93,7 @@ def train(config):
 
         print('Loss:', loss_ema)
 
-        if ep %2 == 0 or ep == config.n_epoch:
+        if ep %10 == 0 or ep == config.n_epoch:
             if torch.cuda.device_count() > 1:
                 torch.save(ddpm.nn_model.module.state_dict(), config.model_save_dir + f"/model_{ep}.pth")
             else:
@@ -100,40 +101,49 @@ def train(config):
             
             ddpm.eval()
 
-        with torch.no_grad():
-            x_gen = ddpm.transfer(x)
+            with torch.no_grad():
+                x_gen = ddpm.transfer(x)
 
-            affine = np.array([[   4.,    0.,    0.,  -98.],
-                       [   0.,    4.,    0., -134.],
-                       [   0.,    0.,    4.,  -72.],
-                       [   0.,    0.,    0.,    1.]])
+                affine = np.array([[   4.,    0.,    0.,  -98.],
+                        [   0.,    4.,    0., -134.],
+                        [   0.,    0.,    4.,  -72.],
+                        [   0.,    0.,    0.,    1.]])
 
-            img_xgen = nib.Nifti1Image(
-            np.array(
-                x_gen.detach().cpu()
-                )[0,0,:,:,:], 
-            affine
-            )
+                img_xgen = nib.Nifti1Image(
+                np.array(
+                    x_gen.detach().cpu()
+                    )[0,0,:,:,:], 
+                affine
+                )
 
-            img_xsrc = nib.Nifti1Image(
-            np.array(
-                x.detach().cpu()
-                )[0,0,:,:,:], 
-            affine
-            )
+                img_xsrc = nib.Nifti1Image(
+                np.array(
+                    x.detach().cpu()
+                    )[0,0,:,:,:], 
+                affine
+                )
 
-            nib.save(img_xgen, f'{config.sample_dir}/gen-image_{i}-{config.dataset}.nii.gz')
-            nib.save(img_xsrc, f'{config.sample_dir}/src-image_{i}-{config.dataset}.nii.gz')
+                xgen_mid = img_xgen.get_fdata()[:, :, :]
+                xgen_mid = xgen_mid[:, :, xgen_mid.shape[1] // 2]
+                xgen_mid = (xgen_mid - np.min(xgen_mid)) / (np.max(xgen_mid) - np.min(xgen_mid))
+                xgen_mid = (xgen_mid * 255).astype(np.uint8)
+                xgen_mid = Image.fromarray(xgen_mid)
 
-            # Save middle slices to wandb
-            middle_slice_gen = x_gen.detach().cpu().numpy()[0, 0, :, :, x_gen.shape[4] // 2]
-            middle_slice_src = x.detach().cpu().numpy()[0, 0, :, :, x.shape[4] // 2]
+                x_mid = img_xsrc.get_fdata()[:, :, :]
+                x_mid = x_mid[:, :, x_mid.shape[1] // 2]
+                x_mid = (x_mid - np.min(x_mid)) / (np.max(x_mid) - np.min(x_mid))
+                x_mid = (x_mid * 255).astype(np.uint8)
+                x_mid = Image.fromarray(x_mid)
 
-            wandb.log({
-                "Generated ": wandb.Image(middle_slice_gen, caption=f"Generated Image {i}"),
-                "Source ": wandb.Image(middle_slice_src, caption=f"Source Image {i}")
-            })
-            ddpm.train()
+                nib.save(img_xgen, f'{config.sample_dir}/gen-image_{i}-{config.dataset}.nii.gz')
+                nib.save(img_xsrc, f'{config.sample_dir}/src-image_{i}-{config.dataset}.nii.gz')
+
+                # Save middle slices to wandb
+                wandb.log({
+                    "Generated ": wandb.Image(xgen_mid, caption=f"Generated Image"),
+                    "Source ": wandb.Image(x_mid, caption=f"Source Image")
+                })
+                ddpm.train()
 
 def transfer(config):
     # Load models
@@ -148,19 +158,21 @@ def transfer(config):
 
     # Data loader. 
     dataset_file = f'{config.data_dir}/test-{config.dataset}.csv'
-    dataset = ClassifDataset(
-        dataset_file, 
-        config.labels)
+    data_flist = pd.read_csv(dataset_file)['filepaths']
+
+    dataset = ImageDataset(
+        data_flist
+    )
+
     print(f'Dataset {config.dataset}: \n {len(dataset)} images.')
 
-
-    source_loader = DataLoader(
+    loader = DataLoader(
         dataset, 
         batch_size=1, 
-        shuffle=False, 
+        shuffle=True, 
         )
 
-    for n, (x, c) in enumerate(source_loader):
+    for n, (x) in enumerate(loader):
 
         ddpm.eval()
 
@@ -200,14 +212,14 @@ if __name__ == "__main__":
     parser.add_argument('--model_save_dir', type=str, default='ddpm_checkpoints')
 
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'transfer'])
-    parser.add_argument('--batch_size', type=int, default=1, help='mini-batch size')
+    parser.add_argument('--batch_size', type=int, default=2, help='mini-batch size')
     parser.add_argument('--n_epoch', type=int, default=1000, help='number of total iterations')
-    parser.add_argument('--lrate', type=float, default=5e-5, help='learning rate')
+    parser.add_argument('--lrate', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--beta', type=tuple, default=(1e-4, 0.02), help='Beta Schedule for DDPM')
-    parser.add_argument('--n_T', type=int, default=500, help='number T')
-    parser.add_argument('--ae_param', type=str, default='./vae_checkpoints/model_321.pth',
+    parser.add_argument('--n_T', type=int, default=1000, help='number T')
+    parser.add_argument('--ae_param', type=str, default='./vae_checkpoints/Feb_10_2025_487.pth',
         help='epoch of autoencoder')
-    parser.add_argument('--test_iter', type=int, default=30, help='epochs to test')
+    parser.add_argument('--test_iter', type=int, default=760, help='epochs to test')
 
     config = parser.parse_args()
 
